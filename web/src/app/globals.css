@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+/* Colores del prototipo de VECI */
+@theme {
+  --color-crema: #fff8ec;
+  --color-marino: #14213d;
+  --color-marino-claro: #1e2f55;
+  --color-marino-hover: #22355e;
+  --color-naranja: #d9480f;
+  --color-naranja-hover: #bf3f0d;
+  --color-estrella: #ffc93c;
+  --font-sans: var(--font-geist-sans);
+}
+
+body {
+  background: var(--color-crema);
+  color: var(--color-marino);
+}
+
+/* Tarjeta azul marino de todo el prototipo */
+@utility tarjeta {
+  background: var(--color-marino);
+  border: 1px solid rgb(255 255 255 / 0.18);
+  box-shadow: 0 10px 40px -20px rgb(0 0 0 / 0.6);
+  color: #fff;
+}
+
+@utility boton {
+  background: var(--color-naranja);
+  color: #fff;
+  border: 1px solid rgb(255 255 255 / 0.35);
+  transition: background-color 0.25s ease, transform 0.2s ease;
+  &:hover:not(:disabled) {
+    background: var(--color-naranja-hover);
+    transform: translateY(-1px);
+  }
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+@utility campo {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid rgb(255 255 255 / 0.25);
+  background: var(--color-marino-claro);
+  padding: 0.625rem 0.75rem;
+  font-size: 0.875rem;
+  color: #fff;
+  &::placeholder {
+    color: rgb(255 255 255 / 0.55);
+  }
+  &:focus {
+    outline: none;
+    border-color: #fff;
+    box-shadow: 0 0 0 2px rgb(255 255 255 / 0.3);
+  }
+}
+
+input[type="range"] {
+  accent-color: #fff;
+}
+
+select option {
+  background: var(--color-marino);
+  color: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

@@ -1,0 +1,1396 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VECI | Conectá con el comercio de tu barrio</title>
+  <script src="tailwind.js"></script>
+  <script src="xlsx.js"></script>
+  <style>
+    :root {
+      --header: #14213D;
+      --page: #FFF8EC;
+      --black: #14213D;
+      --black-hover: #22355e;
+      --line: rgba(255, 255, 255, 0.18);
+    }
+    body { background-color: var(--page); color: #14213D; }
+    .header-bg { background-color: var(--header); }
+    .glass {
+      background: var(--black);
+      border: 1px solid var(--line);
+      box-shadow: 0 10px 40px -20px rgba(0, 0, 0, 0.6);
+    }
+    .btn-neon {
+      background: #D9480F;
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      transition: background-color .25s ease, transform .2s ease, box-shadow .3s ease, border-color .3s ease;
+    }
+    .btn-neon:hover:not(:disabled) {
+      background: #bf3f0d;
+      border-color: #ffffff;
+      box-shadow: 0 0 22px -6px rgba(255, 255, 255, 0.5);
+      transform: translateY(-1px);
+    }
+    .btn-neon:disabled { opacity: .4; cursor: not-allowed; }
+    .card-hover { transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease, background-color .3s ease; }
+    .card-hover:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 18px 40px -18px rgba(255, 255, 255, 0.3);
+      border-color: rgba(255, 255, 255, 0.6);
+    }
+    .pulse-ring { animation: pulse 2.4s ease-out infinite; }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(255,255,255,.55); }
+      100% { box-shadow: 0 0 0 18px rgba(255,255,255,0); }
+    }
+    .fade-in { animation: fadeUp .45s ease both; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: none; }
+    }
+    input[type=range] { accent-color: #ffffff; }
+    select option { background: var(--black); color: #ffffff; }
+    input::placeholder, textarea::placeholder { color: rgba(255,255,255,.55); }
+    #map { touch-action: none; cursor: grab; user-select: none; }
+    #map.dragging { cursor: grabbing; }
+    .map-btn { background: var(--black); border: 1px solid rgba(255,255,255,.35); color: #fff; width: 36px; height: 36px; border-radius: 10px; font-size: 18px; line-height: 1; }
+    .map-btn:hover { background: var(--black-hover); border-color: #fff; }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body class="min-h-screen font-sans antialiased">
+
+  <header class="header-bg sticky top-0 z-40 border-b border-white/10 shadow-lg shadow-black/30">
+    <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-4 px-4 py-3 lg:px-6">
+      <div class="mr-auto flex items-center gap-3">
+        <div class="grid h-11 w-11 place-items-center rounded-2xl border border-white/30 bg-[#14213D] text-lg font-black text-white">V</div>
+        <div>
+          <p class="text-2xl font-black leading-none tracking-tight text-white">VECI</p>
+          <p class="mt-1 text-xs text-white">Conectá con el comercio de tu barrio</p>
+        </div>
+      </div>
+
+      <nav class="flex items-center gap-1 rounded-2xl border border-white/20 bg-[#14213D] p-1" aria-label="Secciones">
+        <button type="button" data-tab="buscar" class="rounded-xl px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10">Buscar</button>
+        <button type="button" data-tab="reservas" class="flex items-center rounded-xl px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10">
+          Mis reservas
+          <span id="reservas-badge" class="ml-1.5 hidden rounded-full bg-white px-1.5 text-[11px] font-bold text-black"></span>
+        </button>
+        <button type="button" data-tab="comerciante" class="rounded-xl px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10">Comerciante</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-7xl px-4 py-6 lg:px-6">
+
+    <section id="view-buscar" class="fade-in">
+      <div class="grid gap-6 lg:grid-cols-[340px_1fr]">
+        <aside class="space-y-4">
+          <div class="glass rounded-3xl p-5">
+            <h2 class="text-xs font-semibold uppercase tracking-wider text-white">Filtros</h2>
+
+            <label for="search" class="mt-4 block text-xs text-white">Producto o rubro</label>
+            <div class="relative mt-1">
+              <svg xmlns="http://www.w3.org/2000/svg" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16z"/></svg>
+              <input id="search" type="search" autocomplete="off" placeholder="Mercería, tornillos, zapatillas..."
+                class="w-full rounded-xl border border-white/25 bg-[#1E2F55] py-2.5 pl-10 pr-3 text-sm text-white placeholder-white/55 focus:border-white focus:outline-none focus:ring-2 focus:ring-white/30">
+            </div>
+
+            <label for="location" class="mt-4 block text-xs text-white">Ubicación</label>
+            <input id="location" type="text" value="Belén de Escobar" autocomplete="off" placeholder="Escribí tu barrio o localidad"
+              class="mt-1 w-full rounded-xl border border-white/25 bg-[#1E2F55] px-3 py-2.5 text-sm text-white placeholder-white/55 focus:border-white focus:outline-none focus:ring-2 focus:ring-white/30">
+            <p id="location-msg" class="mt-2 min-h-[1.25rem] text-xs text-white/80"></p>
+
+            <div class="mt-5 flex items-center justify-between">
+              <label for="radius" class="text-xs text-white">Radio de búsqueda</label>
+              <span id="radius-value" class="rounded-lg border border-white/25 bg-[#1E2F55] px-2.5 py-1 text-xs font-bold text-white">5 km</span>
+            </div>
+            <input id="radius" type="range" min="1" max="20" value="5" class="mt-2 w-full">
+            <div class="mt-1 flex justify-between text-[11px] text-white"><span>1 km</span><span>20 km</span></div>
+          </div>
+
+          <div class="glass rounded-3xl p-5">
+            <div class="flex items-center justify-between">
+              <h2 class="font-semibold text-white">Comercios cercanos</h2>
+              <span id="shop-count" class="text-xs text-white"></span>
+            </div>
+            <div id="shop-list" class="mt-4 space-y-3"></div>
+          </div>
+        </aside>
+
+        <div class="space-y-6">
+          <div class="glass rounded-3xl p-5">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h2 class="font-semibold text-white">Mapa interactivo</h2>
+                <p id="map-caption" class="text-xs text-white"></p>
+              </div>
+              <span class="text-xs text-white">Arrastrá para moverte · rueda o botones para acercar</span>
+            </div>
+            <div id="map" class="relative mt-4 h-[420px] w-full overflow-hidden rounded-2xl border border-white/20 bg-[#d8d1c4]">
+              <svg id="mapbg" class="absolute inset-0 h-full w-full" preserveAspectRatio="none" aria-hidden="true"></svg>
+              <div id="pins" class="absolute inset-0"></div>
+              <div id="map-empty" class="absolute inset-0 hidden items-center justify-center bg-black/35 p-6 text-center text-sm text-white"></div>
+              <div class="absolute right-3 top-3 flex flex-col gap-2">
+                <button type="button" id="zoom-in" class="map-btn" aria-label="Acercar">+</button>
+                <button type="button" id="zoom-out" class="map-btn" aria-label="Alejar">−</button>
+                <button type="button" id="zoom-fit" class="map-btn text-[11px]" aria-label="Centrar en el radio">⌖</button>
+              </div>
+              <div class="absolute bottom-3 left-3 rounded-lg border border-white/25 bg-[#14213D] px-2.5 py-1 text-[11px] text-white" id="scale-label"></div>
+            </div>
+          </div>
+
+          <div id="catalog-wrap" class="glass rounded-3xl p-5"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-reservas" class="hidden fade-in">
+      <div id="reservas-content"></div>
+    </section>
+
+    <section id="view-comerciante" class="hidden fade-in">
+      <div id="dashboard-content"></div>
+    </section>
+
+  </main>
+
+  <div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/75 p-4">
+    <div id="modal-box" class="w-full max-w-lg rounded-3xl border border-white/25 bg-[#14213D] p-6 text-white shadow-2xl"></div>
+  </div>
+
+  <div id="toast" class="glass pointer-events-none fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 translate-y-4 rounded-2xl px-5 py-3 text-sm text-white opacity-0 shadow-xl transition-all duration-300">
+    <span id="toast-text"></span>
+  </div>
+
+  <script>
+    const IMG = {
+      merceria: "https://images.unsplash.com/photo-1606722590583-6951b5ea92ad?w=800&q=80&auto=format&fit=crop",
+      ferreteria: "https://images.unsplash.com/photo-1581147036324-c1c4b7d3d5b5?w=800&q=80&auto=format&fit=crop",
+      herrajes: "https://images.unsplash.com/photo-1504148455328-c376907d081c?w=800&q=80&auto=format&fit=crop"
+    };
+
+    const ZONES = { escobar: "Belén de Escobar", pacheco: "Pacheco", tigre: "Tigre" };
+    const PLACE_WORDS = [
+      { zone: "escobar", words: ["escobar", "belen"] },
+      { zone: "pacheco", words: ["pacheco"] },
+      { zone: "tigre", words: ["tigre"] }
+    ];
+    const OTHER_PLACES = ["olivos", "villa urquiza", "urquiza", "pilar", "san isidro", "vicente lopez", "garin"];
+    const PAYMENTS = [
+      { id: "local", label: "Pagar en el local", funds: true, note: "Pagás al retirar" },
+      { id: "galicia", label: "Banco Galicia", funds: false, note: "Sin fondos suficientes (simulado)" },
+      { id: "bbva", label: "Banco BBVA", funds: true, note: "Pago online: monto retenido hasta que el comercio acepte" },
+      { id: "mp", label: "Mercado Pago", funds: true, note: "Pago online: monto retenido hasta que el comercio acepte" }
+    ];
+    const RES_TABS = [
+      { key: "todas", label: "Todas" },
+      { key: "pendiente", label: "Pendientes", status: "pendiente" },
+      { key: "alternativa", label: "Con oferta", status: "alternativa" },
+      { key: "aceptada", label: "Aceptadas", status: "aceptada" },
+      { key: "entregada", label: "Entregadas", status: "entregada" },
+      { key: "rechazada", label: "Rechazadas", status: "rechazada" }
+    ];
+    const SLOTS = ["Hoy, 10:00 a 12:00", "Hoy, 16:00 a 18:00", "Mañana, 10:00 a 12:00", "Mañana, 16:00 a 18:00"];
+    const CLIENT = "Laura M.";
+    const MERCHANT_ID = 1;
+
+    const SHOPS = [
+      { id: 1, zone: "escobar", name: "Mercería La Aguja", rubro: "Mercería", address: "San Martín 780, Belén de Escobar", km: 0.5, open: 9, close: 20, angle: 215, views: 38, products: [
+        { name: "Hilo de coser negro", price: 1200, stock: 12, img: IMG.merceria, desc: "Poliéster de alta resistencia para costuras diarias." },
+        { name: "Botones 15 mm x12", price: 850, stock: 2, img: IMG.merceria, desc: "Botones de resina con cuatro agujeros, color negro." },
+        { name: "Cierre 20 cm", price: 850, stock: 8, img: IMG.merceria, desc: "Cierre de nylon con cursor metálico." },
+        { name: "Agujas de coser x10", price: 600, stock: 0, img: IMG.merceria, desc: "Surtido de agujas para tela con punta redonda." }
+      ]},
+      { id: 2, zone: "escobar", name: "Ferretería El Tornillo", rubro: "Ferretería", address: "Av. Ricardo Balbín 1040, Belén de Escobar", km: 1.4, open: 8, close: 18, angle: 20, views: 21, products: [
+        { name: "Tornillos 4x40 (x100)", price: 2300, stock: 20, img: IMG.ferreteria, desc: "Acero galvanizado para madera y tarugos plásticos." },
+        { name: "Cinta aisladora 20 m", price: 1100, stock: 9, img: IMG.ferreteria, desc: "Cinta de PVC resistente al calor y a la humedad." },
+        { name: "Martillo 500 g", price: 8900, stock: 2, img: IMG.ferreteria, desc: "Mango de fibra de vidrio y cabeza de acero forjado." }
+      ]},
+      { id: 3, zone: "escobar", name: "Solido herrajes", rubro: "Herrajes", address: "Rivadavia 1450, Belén de Escobar", km: 1.8, open: 8, close: 18, angle: 110, views: 14, products: [
+        { name: "Corredera pesada 35 cm", price: 9800, stock: 6, img: IMG.herrajes, desc: "Corredera de extensión total con carga de hasta 35 kg." },
+        { name: "Corredera de cajón 35 cm", price: 4200, stock: 4, img: IMG.herrajes, desc: "Corredera telescópica con cierre suave." },
+        { name: "Bisagra cazoleta 0", price: 650, stock: 0, img: IMG.herrajes, desc: "Bisagra de cazoleta con cierre a presión." },
+        { name: "Cerradura Prive 200", price: null, stock: 5, img: IMG.herrajes, desc: "Cerradura de embutir con llave de seguridad." },
+        { name: "Placa MDF blanco 18 mm 2440x1220", price: 62000, stock: 3, img: IMG.herrajes, desc: "Placa de MDF blanca, medida estándar." }
+      ]},
+      { id: 4, zone: "pacheco", name: "Mercería Pacheco", rubro: "Mercería", address: "Av. Cazón 2315, Pacheco", km: 0.6, open: 9, close: 19, angle: 250, views: 17, products: [
+        { name: "Hilo de coser blanco", price: 1300, stock: 10, img: IMG.merceria, desc: "Hilo de algodón para ropa y ropa de hogar." },
+        { name: "Botones 15 mm x12", price: 900, stock: 15, img: IMG.merceria, desc: "Botones lisos de resina, varios colores." },
+        { name: "Agujas de coser x10", price: 650, stock: 1, img: IMG.merceria, desc: "Agujas de punta fina para telas livianas." }
+      ]},
+      { id: 5, zone: "pacheco", name: "Ferretería La Rueda", rubro: "Ferretería", address: "Ruta 27 Km 3, Pacheco", km: 1.4, open: 8, close: 18, angle: 300, views: 9, products: [
+        { name: "Tornillos 4x40 (x100)", price: 2400, stock: 14, img: IMG.ferreteria, desc: "Caja de tornillos de acero para uso general." },
+        { name: "Cinta aisladora 20 m", price: 1150, stock: 7, img: IMG.ferreteria, desc: "Cinta aislante para uso eléctrico doméstico." },
+        { name: "Llave de paso 1/2", price: 3900, stock: 0, img: IMG.ferreteria, desc: "Llave de paso de bronce con maneral de palanca." }
+      ]},
+      { id: 6, zone: "tigre", name: "Herrajes del Delta", rubro: "Herrajes", address: "Lavalle 220, Tigre", km: 2.4, open: 8, close: 18, angle: 150, views: 6, products: [
+        { name: "Corredera pesada 35 cm", price: 9900, stock: 4, img: IMG.herrajes, desc: "Corredera de extensión total para cajones grandes." },
+        { name: "Bisagra cazoleta 9", price: 680, stock: 0, img: IMG.herrajes, desc: "Bisagra de cazoleta con recorte de 9 mm." },
+        { name: "Cerradura Prive 200", price: 5950, stock: 6, img: IMG.herrajes, desc: "Cerradura de seguridad con cilindro de 200 mm." }
+      ]}
+    ];
+
+    const REVIEWS = [
+      { shop: 1, stars: 5, text: "Tenían todo lo que necesitaba y me atendieron rápido.", who: "Marta R.", date: "08/10/2026" },
+      { shop: 1, stars: 4, text: "Buena atención. El hilo estaba como decía la app.", who: "Julián P.", date: "03/10/2026" },
+      { shop: 1, stars: 5, text: "Reservé por la noche y al otro día todo listo para retirar.", who: "Sofía T.", date: "29/09/2026" },
+      { shop: 3, stars: 5, text: "Retiré las correderas sin esperar. Muy prolijos.", who: "Diego L.", date: "06/10/2026" },
+      { shop: 2, stars: 3, text: "Conviene ir con tiempo: hubo que esperar en el mostrador.", who: "Carla S.", date: "01/10/2026" }
+    ];
+
+    const STATUS = {
+      pendiente: { label: "Pendiente de retiro", chip: "border-white/40 text-white", bar: "bg-white" },
+      aceptada: { label: "Pendiente de retiro", chip: "border-white/40 text-white", bar: "bg-white" },
+      entregada: { label: "Retirada", chip: "border-white/20 text-white/80", bar: "bg-white/40" },
+      rechazada: { label: "Rechazada", chip: "border-white/20 text-white/80", bar: "bg-white/20" },
+      alternativa: { label: "Oferta de otro producto", chip: "border-white/70 text-white", bar: "bg-white/70" }
+    };
+
+    const S = { tab: "buscar", query: "", catQ: "", productIdx: null, offerOpen: null, resFilter: "todas", resQ: "", zone: "escobar", locMsg: "", radius: 5, shopId: null, slot: SLOTS[0], res: [], nextId: 1 };
+    const MAP = { cx: 0, cy: 0, z: 60, dragging: false, lastX: 0, lastY: 0 };
+
+    const $ = s => document.querySelector(s);
+    const $$ = s => document.querySelectorAll(s);
+    const esc = v => String(v).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const norm = v => String(v).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const money = n => n == null ? "A consultar" : "$ " + Math.round(n).toLocaleString("es-AR");
+    const km = n => n.toFixed(1).replace(".", ",") + " km";
+    const initials = n => n.split(" ").filter(w => w.length > 2).slice(0, 2).map(w => w[0]).join("").toUpperCase();
+    const shopById = id => SHOPS.find(s => s.id === id);
+    const avg = id => {
+      const r = REVIEWS.filter(x => x.shop === id);
+      return r.length ? r.reduce((a, b) => a + b.stars, 0) / r.length : null;
+    };
+    const stars = (v, cls = "text-sm") => {
+      const f = Math.round(v || 0);
+      return `<span class="${cls} whitespace-nowrap tracking-tight"><span class="text-[#FFC93C]">${"★".repeat(f)}</span><span class="text-white/35">${"★".repeat(5 - f)}</span></span>`;
+    };
+    const isOpen = s => { const h = new Date().getHours(); return h >= s.open && h < s.close; };
+    const travel = d => ({ walk: Math.max(1, Math.round(d * 12)), car: Math.max(2, Math.round(d * 3)) });
+    const openBadge = open => `<span class="shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold text-white ${open ? "border-white" : "border-white/40"}">${open ? "Abierto" : "Cerrado"}</span>`;
+    const stockBadge = n => n <= 0
+      ? `<span class="rounded-full border border-white/40 bg-[#1E2F55] px-2.5 py-0.5 text-[11px] font-semibold text-white">Agotado</span>`
+      : n <= 3
+        ? `<span class="rounded-full border border-white/70 bg-[#1E2F55] px-2.5 py-0.5 text-[11px] font-semibold text-white">Últimas ${n}</span>`
+        : `<span class="rounded-full border border-white bg-[#1E2F55] px-2.5 py-0.5 text-[11px] font-semibold text-white">Disponible</span>`;
+    const parsePrice = raw => {
+      if (raw == null) return null;
+      let v = String(raw).trim().replace(/^\$\s*/, "").replace(/\s/g, "");
+      if (!v || /consult/i.test(v)) return null;
+      if (v.includes(",") && v.includes(".")) v = v.replace(/\./g, "").replace(",", ".");
+      else if (v.includes(",")) v = v.replace(",", ".");
+      else if (/^\d{1,3}(\.\d{3})+$/.test(v)) v = v.replace(/\./g, "");
+      const n = parseFloat(v);
+      return isNaN(n) ? null : n;
+    };
+
+    function resolveLocation(text) {
+      const t = norm(text).trim();
+      if (!t) return { zone: null, msg: "Escribí tu barrio o localidad para ver comercios cercanos." };
+      const hit = PLACE_WORDS.find(p => p.words.some(w => t.includes(w)));
+      if (hit) return { zone: hit.zone, msg: "" };
+      const other = OTHER_PLACES.find(o => t.includes(o));
+      if (other) return { zone: null, msg: `Todavía no hay comercios cargados en ${other}. Estamos sumando zonas de a una.` };
+      return { zone: null, msg: "No reconocimos esa ubicación. Probá con Belén de Escobar, Pacheco o Tigre." };
+    }
+
+    function filteredShops() {
+      if (!S.zone) return [];
+      const q = norm(S.query.trim());
+      return SHOPS
+        .filter(s => s.zone === S.zone && s.km <= S.radius)
+        .filter(s => !q || norm(s.name + " " + s.rubro).includes(q) || s.products.some(p => norm(p.name).includes(q)))
+        .sort((a, b) => a.km - b.km);
+    }
+
+    function renderShopList() {
+      const list = filteredShops();
+      $("#shop-count").textContent = list.length + (list.length === 1 ? " comercio" : " comercios");
+      $("#location-msg").textContent = S.locMsg;
+      $("#shop-list").innerHTML = list.length ? list.map(s => {
+        const a = avg(s.id), t = travel(s.km), sel = S.shopId === s.id, open = isOpen(s);
+        return `
+          <button type="button" data-shop="${s.id}" class="card-hover w-full rounded-2xl border p-4 text-left text-white ${sel ? "border-white bg-white/10" : "border-white/20 bg-[#14213D]"}">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0"><p class="truncate font-semibold">${esc(s.name)}</p><p class="text-xs text-white/80">${s.rubro}</p></div>
+              ${openBadge(open)}
+            </div>
+            <div class="mt-2 flex items-center gap-2 text-xs">${stars(a)}<span class="text-white/80">${a ? a.toFixed(1).replace(".", ",") : "Nuevo"}</span></div>
+            <div class="mt-3 flex flex-wrap justify-between gap-x-3 gap-y-1 text-xs text-white/80">
+              <span class="font-semibold text-white">${km(s.km)}</span>
+              <span>A pie ${t.walk} min · En auto ${t.car} min</span>
+            </div>
+            <p class="mt-2 truncate text-xs text-white/70">${esc(s.address)}</p>
+          </button>`;
+      }).join("") : `<div class="rounded-2xl border border-dashed border-white/30 bg-[#14213D] p-6 text-center text-sm text-white">${S.zone ? `No hay comercios con esa búsqueda dentro de ${S.radius} km. Probá ampliar el radio.` : (S.locMsg || "Escribí una ubicación para empezar.")}</div>`;
+    }
+
+    function mapSize() {
+      const el = $("#map");
+      return { W: el.clientWidth, H: el.clientHeight };
+    }
+
+    function fitZoom() {
+      const { W, H } = mapSize();
+      const z = Math.min(W, H) / (2.6 * S.radius);
+      return Math.max(14, Math.min(400, z));
+    }
+
+    function streetsSVG() {
+      const parts = [];
+      const span = 12, step = 0.14, major = 0.7;
+      parts.push(`<rect x="-${span}" y="-${span}" width="${span * 2}" height="${span * 2}" fill="#d8d1c4"/>`);
+      for (let i = -span; i <= span; i += step) {
+        const isMajor = Math.abs(Math.round(i / major) * major - i) < 0.01;
+        const w = isMajor ? 0.07 : 0.035;
+        const col = isMajor ? "#fbf8f1" : "#f1ece1";
+        parts.push(`<rect x="${(i - w / 2).toFixed(3)}" y="-${span}" width="${w}" height="${span * 2}" fill="${col}"/>`);
+        parts.push(`<rect x="-${span}" y="${(i - w / 2).toFixed(3)}" width="${span * 2}" height="${w}" fill="${col}"/>`);
+      }
+      parts.push(`<path d="M -12 -4.2 C -6 -2.4, -3 -5.6, 0 -3.6 S 5 -1.6, 12 -3.2" fill="none" stroke="#9fb8c6" stroke-width="0.42"/>`);
+      parts.push(`<path d="M -12 -4.0 C -6 -2.2, -3 -5.4, 0 -3.4 S 5 -1.4, 12 -3.0" fill="none" stroke="#b9d0dc" stroke-width="0.12"/>`);
+      [[-2.2, 1.6, 1.1, 0.9], [1.6, 2.4, 0.9, 0.7], [-4.6, -2.8, 0.8, 0.6], [3.4, 3.6, 0.7, 0.9]].forEach(p => {
+        parts.push(`<rect x="${p[0]}" y="${p[1]}" width="${p[2]}" height="${p[3]}" rx="0.08" fill="#b7c3a2"/>`);
+      });
+      parts.push(`<circle cx="0.2" cy="0.4" r="0.32" fill="#b7c3a2"/>`);
+      parts.push(`<rect x="-0.9" y="-0.9" width="0.6" height="0.6" fill="#e6dfd2"/>`);
+      return parts.join("");
+    }
+
+    function drawMap() {
+      const svg = $("#mapbg");
+      const { W, H } = mapSize();
+      const z = MAP.z;
+      const vb = [MAP.cx - W / 2 / z, MAP.cy - H / 2 / z, W / z, H / z];
+      svg.setAttribute("viewBox", vb.join(" "));
+      const radius = S.zone ? `<circle cx="0" cy="0" r="${S.radius}" fill="rgba(0,0,0,0.12)" stroke="#14213D" stroke-width="${1.6 / z}" stroke-dasharray="${8 / z} ${6 / z}"/>` : "";
+      const center = S.zone ? `<circle cx="0" cy="0" r="${4 / z}" fill="#14213D" stroke="#fff" stroke-width="${2 / z}"/>` : "";
+      svg.innerHTML = `<g>${streetsSVG()}${radius}${center}</g>`;
+
+      const list = filteredShops();
+      $("#pins").innerHTML = list.map(s => {
+        const sx = W / 2 + (s.dx - MAP.cx) * z;
+        const sy = H / 2 + (s.dy - MAP.cy) * z;
+        const sel = S.shopId === s.id;
+        return `
+          <button type="button" data-pin="${s.id}" aria-label="${esc(s.name)}" style="left:${sx}px;top:${sy}px"
+            class="group absolute -translate-x-1/2 -translate-y-1/2 transition-transform duration-200 hover:scale-110 focus:outline-none">
+            <span class="grid h-10 w-10 place-items-center rounded-full border-2 border-white bg-[#14213D] text-xs font-black text-white shadow-lg ${sel ? "pulse-ring" : ""}">${initials(s.name)}</span>
+            <span class="pointer-events-none absolute left-1/2 top-full mt-1.5 -translate-x-1/2 whitespace-nowrap rounded-lg border border-white/30 bg-[#14213D] px-2 py-1 text-[11px] text-white transition-opacity ${sel ? "opacity-100" : "opacity-0 group-hover:opacity-100"}">${esc(s.name)}</span>
+          </button>`;
+      }).join("");
+
+      $("#map-caption").textContent = S.zone ? `Radio de ${S.radius} km desde ${ZONES[S.zone]}` : "Sin zona seleccionada";
+      $("#map-empty").classList.toggle("hidden", !!S.zone);
+      $("#map-empty").classList.toggle("flex", !S.zone);
+      $("#map-empty").textContent = S.zone ? "" : (S.locMsg || "Escribí una ubicación para ver el mapa.");
+      const meters = Math.round(100 / z * 1000);
+      $("#scale-label").textContent = meters >= 1000 ? `100 px ≈ ${(meters / 1000).toFixed(2).replace(".", ",")} km` : `100 px ≈ ${meters} m`;
+    }
+
+    function recenter(fit) {
+      MAP.cx = 0;
+      MAP.cy = 0;
+      if (fit) MAP.z = fitZoom();
+      drawMap();
+    }
+
+    function zoomBy(factor, clientX, clientY) {
+      const el = $("#map");
+      const rect = el.getBoundingClientRect();
+      const { W, H } = mapSize();
+      const px = clientX !== undefined ? clientX - rect.left : W / 2;
+      const py = clientY !== undefined ? clientY - rect.top : H / 2;
+      const kmX = MAP.cx + (px - W / 2) / MAP.z;
+      const kmY = MAP.cy + (py - H / 2) / MAP.z;
+      MAP.z = Math.max(12, Math.min(600, MAP.z * factor));
+      MAP.cx = kmX - (px - W / 2) / MAP.z;
+      MAP.cy = kmY - (py - H / 2) / MAP.z;
+      drawMap();
+    }
+
+    function setZone(zoneId) {
+      const changed = zoneId !== S.zone;
+      S.zone = zoneId;
+      if (changed) {
+        S.shopId = null;
+        S.productIdx = null;
+        MAP.cx = 0;
+        MAP.cy = 0;
+        MAP.z = fitZoom();
+      }
+    }
+
+    function renderCatalog() {
+      const wrap = $("#catalog-wrap");
+      const s = shopById(S.shopId);
+      if (!s) {
+        wrap.innerHTML = `
+          <div class="flex flex-col items-center justify-center py-14 text-center">
+            <div class="grid h-16 w-16 place-items-center rounded-2xl border border-white/40 bg-[#14213D] text-2xl font-black text-white">?</div>
+            <h3 class="mt-4 text-lg font-semibold text-white">Elegí un comercio</h3>
+            <p class="mt-1 max-w-sm text-sm text-white/80">Tocá un pin del mapa o una tarjeta de la lista para ver su catálogo, precios y stock.</p>
+          </div>`;
+        return;
+      }
+      if (S.productIdx !== null && s.products[S.productIdx]) {
+        wrap.innerHTML = productDetailHTML(s, S.productIdx);
+        return;
+      }
+      const a = avg(s.id), t = travel(s.km), open = isOpen(s);
+      wrap.innerHTML = `
+        <div class="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <div class="flex flex-wrap items-center gap-2">
+              <h2 class="text-xl font-bold text-white">${esc(s.name)}</h2>
+              ${openBadge(open)}
+            </div>
+            <p class="mt-1 text-sm text-white/80">${esc(s.address)} · Horario ${s.open}:00 a ${s.close}:00</p>
+            <div class="mt-2 flex flex-wrap items-center gap-3 text-xs text-white/80">
+              ${stars(a)}<span>${a ? a.toFixed(1).replace(".", ",") : "Sin reseñas"}</span>
+              <span>·</span><span>${km(s.km)} · a pie ${t.walk} min · en auto ${t.car} min</span>
+            </div>
+          </div>
+          <div class="w-full sm:w-auto">
+            <label for="slot" class="text-xs text-white">Horario de retiro</label>
+            <select id="slot" class="mt-1 w-full rounded-xl border border-white/25 bg-[#1E2F55] px-3 py-2.5 text-sm text-white focus:border-white focus:outline-none sm:w-60">
+              ${SLOTS.map(x => `<option ${x === S.slot ? "selected" : ""}>${x}</option>`).join("")}
+            </select>
+          </div>
+        </div>
+        <div class="mt-6">
+          <div class="relative">
+            <svg xmlns="http://www.w3.org/2000/svg" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16z"/></svg>
+            <input id="catq" type="search" autocomplete="off" value="${esc(S.catQ)}" placeholder="Buscar un producto en ${esc(s.name)}" aria-label="Buscar un producto en ${esc(s.name)}"
+              class="w-full rounded-xl border border-white/25 bg-[#1E2F55] py-2.5 pl-10 pr-3 text-sm text-white placeholder-white/55 focus:border-white focus:outline-none focus:ring-2 focus:ring-white/30">
+          </div>
+          <p id="catq-count" class="mt-2 text-xs text-white/80"></p>
+          <div id="catgrid" class="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3"></div>
+        </div>`;
+      renderCatGrid(s);
+    }
+
+    function renderCatGrid(s) {
+      const grid = $("#catgrid");
+      if (!grid) return;
+      const q = norm(S.catQ.trim());
+      const items = s.products
+        .map((p, i) => ({ p, i }))
+        .filter(o => !q || norm(o.p.name).includes(q) || norm(o.p.desc || "").includes(q));
+      grid.innerHTML = items.length
+        ? items.map(o => productCard(s, o.p, o.i)).join("")
+        : `<div class="col-span-full rounded-2xl border border-dashed border-white/30 bg-[#1E2F55] p-8 text-center text-sm text-white">No encontramos "${esc(S.catQ.trim())}" en este local. Probá con otra palabra.</div>`;
+      $("#catq-count").textContent = q
+        ? `${items.length} de ${s.products.length} productos`
+        : `${s.products.length} productos en este local`;
+    }
+
+    function productDetailHTML(s, idx) {
+      const p = s.products[idx];
+      const a = avg(s.id), open = isOpen(s);
+      const max = Math.min(Math.max(p.stock, 1), 5);
+      const qtyOpts = Array.from({ length: max }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join("");
+      const slotOpts = SLOTS.map(x => `<option ${x === S.slot ? "selected" : ""}>${x}</option>`).join("");
+      const others = s.products.map((o, i) => ({ o, i })).filter(x => x.i !== idx).slice(0, 4);
+      const img = p.img ? `<img src="${p.img}" alt="${esc(p.name)}" class="h-full w-full object-cover" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">` : "";
+      const fallback = `<div style="display:${p.img ? "none" : "flex"}" class="absolute inset-0 items-center justify-center bg-[#1E2F55] text-7xl font-black text-white">${esc(p.name.charAt(0).toUpperCase())}</div>`;
+      const row = (k, v) => `<div class="flex justify-between gap-4 border-b border-white/10 py-2.5 text-sm"><dt class="text-white/70">${k}</dt><dd class="text-right font-medium text-white">${v}</dd></div>`;
+      return `
+        <button type="button" data-back-product="1" class="text-sm text-white/80 transition hover:text-white">‹ Volver a ${esc(s.name)}</button>
+        <nav class="mt-3 text-xs text-white/70">${esc(s.rubro)} › ${esc(p.name)}</nav>
+
+        <div class="mt-4 grid gap-8 md:grid-cols-2">
+          <div class="relative aspect-square overflow-hidden rounded-2xl border border-white/20 bg-[#1E2F55]">${img}${fallback}</div>
+          <div>
+            <p class="text-xs text-white/80">Vendido por <span class="font-semibold text-white">${esc(s.name)}</span></p>
+            <div class="mt-1 flex items-center gap-2 text-xs text-white/80">${stars(a)}<span>${a ? a.toFixed(1).replace(".", ",") : "Sin reseñas"}</span></div>
+            <h2 class="mt-3 text-2xl font-bold leading-snug text-white">${esc(p.name)}</h2>
+            <div class="mt-3 flex flex-wrap items-center gap-2">${stockBadge(p.stock)}${openBadge(open)}</div>
+            <p class="mt-4 text-3xl font-black text-white">${money(p.price)}</p>
+            <p class="mt-2 text-xs text-white/80">Pagás online (se cobra cuando el comercio acepta la reserva) o en el local al retirar. Si el comercio no acepta, no se cobra nada.</p>
+
+            <div class="mt-5 grid gap-3 sm:grid-cols-2">
+              <label class="block text-xs text-white">Cantidad
+                <select id="qty-detail" ${p.stock <= 0 ? "disabled" : ""} class="mt-1 w-full rounded-xl border border-white/25 bg-[#1E2F55] px-3 py-2.5 text-sm text-white focus:border-white focus:outline-none">${qtyOpts}</select>
+              </label>
+              <label class="block text-xs text-white">Horario de retiro
+                <select id="slot-detail" class="mt-1 w-full rounded-xl border border-white/25 bg-[#1E2F55] px-3 py-2.5 text-sm text-white focus:border-white focus:outline-none">${slotOpts}</select>
+              </label>
+            </div>
+
+            <fieldset class="mt-5">
+              <legend class="text-xs text-white">Cómo querés pagar</legend>
+              <div class="mt-2 grid gap-2">
+                ${PAYMENTS.map(m => `
+                  <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-white/25 bg-[#1E2F55] px-3 py-2.5 text-sm text-white has-[:checked]:border-white has-[:checked]:bg-[#14213D]">
+                    <input type="radio" name="pay-detail" value="${m.id}" ${m.id === "local" ? "checked" : ""} class="accent-white">
+                    <span><span class="font-semibold">${m.label}</span><span class="block text-xs text-white/75">${m.note}</span></span>
+                  </label>`).join("")}
+              </div>
+            </fieldset>
+
+            <button type="button" data-reserve-detail="${s.id}:${idx}" ${p.stock <= 0 ? "disabled" : ""} class="btn-neon mt-5 w-full rounded-xl px-4 py-3 text-sm font-semibold">
+              ${p.stock <= 0 ? "Sin stock" : "Reservar (Click & Collect)"}
+            </button>
+            <button type="button" data-wa="1" class="mt-2 w-full rounded-xl border border-white/30 px-4 py-3 text-sm text-white transition hover:bg-white/10">Consultar por WhatsApp</button>
+
+            <div class="mt-6 rounded-2xl border border-white/20 bg-[#1E2F55] p-4">
+              <p class="text-sm font-semibold text-white">Retirás en el local</p>
+              <p class="mt-1 text-xs text-white/80">${esc(s.address)}</p>
+              <p class="mt-1 text-xs text-white/80">Horario de atención: ${s.open}:00 a ${s.close}:00</p>
+            </div>
+          </div>
+        </div>
+
+        <section class="mt-8">
+          <h3 class="text-lg font-semibold text-white">Descripción</h3>
+          <p class="mt-2 text-sm leading-relaxed text-white/85">${esc(p.desc || "Este producto todavía no tiene descripción cargada.")}</p>
+        </section>
+
+        <section class="mt-8">
+          <h3 class="text-lg font-semibold text-white">Características</h3>
+          <dl class="mt-2 max-w-xl">
+            ${row("Comercio", esc(s.name))}
+            ${row("Rubro", esc(s.rubro))}
+            ${row("Stock disponible", p.stock > 0 ? p.stock + " unidades" : "Agotado")}
+            ${row("Precio", money(p.price))}
+            ${row("Horario de atención", s.open + ":00 a " + s.close + ":00")}
+            ${row("Valoración del comercio", a ? a.toFixed(1).replace(".", ",") + " de 5" : "Sin reseñas")}
+          </dl>
+        </section>
+
+        ${others.length ? `
+        <section class="mt-8">
+          <h3 class="text-lg font-semibold text-white">Más productos de ${esc(s.name)}</h3>
+          <div class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            ${others.map(x => `
+              <button type="button" data-open="${s.id}:${x.i}" class="card-hover rounded-2xl border border-white/20 bg-[#14213D] p-4 text-left">
+                <p class="text-sm font-semibold text-white">${esc(x.o.name)}</p>
+                <p class="mt-1 text-sm text-white/80">${money(x.o.price)}</p>
+                <p class="mt-2 text-xs text-white/70">${x.o.stock <= 0 ? "Agotado" : "Ver producto"}</p>
+              </button>`).join("")}
+          </div>
+        </section>` : ""}`;
+    }
+
+    function productCard(s, p, i) {
+      const reserved = S.res.filter(r => r.shop === s.id && r.product === p.name && r.status === "pendiente").reduce((a, b) => a + b.qty, 0);
+      const initial = p.name.charAt(0).toUpperCase();
+      const img = p.img ? `<img src="${p.img}" alt="${esc(p.name)}" loading="lazy" class="h-full w-full object-cover transition duration-700 group-hover:scale-110" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">` : "";
+      const fallback = `<div style="display:${p.img ? "none" : "flex"}" class="absolute inset-0 items-center justify-center bg-[#1E2F55] text-5xl font-black text-white">${initial}</div>`;
+      return `
+        <article data-open="${s.id}:${i}" class="group card-hover fade-in cursor-pointer overflow-hidden rounded-2xl border border-white/20 bg-[#14213D]">
+          <div class="relative aspect-[4/3] overflow-hidden bg-[#1E2F55]">
+            ${img}${fallback}
+            <span class="absolute left-3 top-3">${stockBadge(p.stock)}</span>
+          </div>
+          <div class="p-4">
+            <h3 class="font-semibold leading-snug text-white">${esc(p.name)}</h3>
+            <p class="mt-1 line-clamp-2 min-h-[2.5rem] text-xs text-white/75">${esc(p.desc || "")}</p>
+            <div class="mt-3 flex items-end justify-between gap-2">
+              <span class="text-xl font-black text-white">${money(p.price)}</span>
+              ${reserved ? `<span class="text-[11px] text-white/80">${reserved} reservado${reserved > 1 ? "s" : ""}</span>` : ""}
+            </div>
+            <button type="button" data-reserve="${s.id}:${i}" ${p.stock <= 0 ? "disabled" : ""}
+              class="btn-neon mt-4 w-full rounded-xl px-4 py-2.5 text-sm font-semibold">
+              ${p.stock <= 0 ? "Sin stock" : "Reservar (Click & Collect)"}
+            </button>
+          </div>
+        </article>`;
+    }
+
+    function renderReservas() {
+      const el = $("#reservas-content");
+      if (!S.res.length) {
+        el.innerHTML = `
+          <div class="glass fade-in mx-auto max-w-xl rounded-3xl p-10 text-center">
+            <div class="mx-auto grid h-20 w-20 place-items-center rounded-3xl border border-white/40 bg-[#1E2F55]">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
+            </div>
+            <h2 class="mt-6 text-xl font-bold text-white">Todavía no tenés reservas</h2>
+            <p class="mt-2 text-sm text-white/80">Buscá un producto, elegí un comercio cercano y tocá <span class="font-semibold text-white">Reservar</span>. Acá vas a ver todo lo que tengas para retirar.</p>
+            <button type="button" data-go="buscar" class="btn-neon mt-6 rounded-xl px-5 py-2.5 text-sm font-semibold">Ir a buscar</button>
+          </div>`;
+        return;
+      }
+      const pending = S.res.filter(r => r.status === "pendiente" || r.status === "aceptada");
+      const total = pending.reduce((a, r) => a + (r.price == null ? 0 : r.price * r.qty), 0);
+      el.innerHTML = `
+        <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h2 class="text-2xl font-bold text-[#14213D]">Mis reservas</h2>
+            <p class="text-sm text-[#14213D]/80">Retirás en el local en el horario elegido.</p>
+          </div>
+          <div class="glass rounded-2xl px-5 py-3 text-right">
+            <p class="text-xs text-white/80">Total pendiente de retiro</p>
+            <p class="text-xl font-black text-white">${money(total)}</p>
+          </div>
+        </div>
+        <div class="grid gap-4 md:grid-cols-2">${S.res.map(resCard).join("")}</div>`;
+    }
+
+    function offerBox(r, s) {
+      return `
+        <div class="mt-4 rounded-xl border border-white/30 bg-[#1E2F55] p-3">
+          <p class="text-sm text-white"><span class="font-semibold">${esc(s.name)} no tiene "${esc(r.product)}".</span> Te ofrece:</p>
+          <p class="mt-1 font-semibold text-white">${esc(r.offer.name)} · ${money(r.offer.price)} c/u</p>
+          <p class="mt-1 text-xs text-white/80">Si la aceptás, la reserva pasa a ese producto. Si no te interesa, no se cobra nada.</p>
+          <div class="mt-3 flex gap-2">
+            <button type="button" data-accept-offer="${r.id}" class="btn-neon flex-1 rounded-xl py-2 text-sm font-semibold">Aceptar alternativa</button>
+            <button type="button" data-reject-offer="${r.id}" class="flex-1 rounded-xl border border-white/40 py-2 text-sm font-semibold text-white transition hover:border-white hover:bg-white/10">No me interesa</button>
+          </div>
+        </div>`;
+    }
+
+    function reviewBox(r) {
+      if (r.reviewed) {
+        return `
+          <div class="mt-4 rounded-xl border border-white/30 bg-[#1E2F55] p-3">
+            <p class="text-xs text-white/80">Tu reseña</p>
+            <p class="mt-1">${stars(r.reviewed.stars)}</p>
+            <p class="mt-1 text-sm text-white">${esc(r.reviewed.text)}</p>
+          </div>`;
+      }
+      const picks = [1, 2, 3, 4, 5].map(n => `
+        <button type="button" data-rstar="${r.id}:${n}" aria-label="${n} ${n === 1 ? "estrella" : "estrellas"}"
+          class="px-0.5 text-2xl leading-none ${n <= (r.draftStars || 0) ? "text-[#FFC93C]" : "text-white/35"} transition hover:scale-110">★</button>`).join("");
+      return `
+        <div class="mt-4 rounded-xl border border-white/30 bg-[#1E2F55] p-3">
+          <p class="text-sm font-semibold text-white">¿Cómo fue tu experiencia?</p>
+          <p class="mt-1 text-xs text-white/80">Ya retiraste el producto. Tu reseña ayuda a otros vecinos a elegir.</p>
+          <div class="mt-2">${picks}</div>
+          <textarea id="rtxt-${r.id}" rows="2" placeholder="Contá cómo te atendieron (opcional)" class="mt-2 w-full rounded-xl border border-white/25 bg-[#14213D] p-2.5 text-sm text-white placeholder-white/55 focus:border-white focus:outline-none">${esc(r.draftText || "")}</textarea>
+          <button type="button" data-publish-review="${r.id}" class="btn-neon mt-3 w-full rounded-xl py-2 text-sm font-semibold">Publicar reseña</button>
+        </div>`;
+    }
+
+    function resCard(r) {
+      const s = shopById(r.shop);
+      const st = STATUS[r.status];
+      const tot = r.price == null ? null : r.price * r.qty;
+      const note = r.status === "aceptada" ? "Confirmada por el comercio." : r.status === "rechazada" ? "No se cobró nada." : "";
+      return `
+        <article class="card-hover fade-in relative overflow-hidden rounded-2xl border border-white/20 bg-[#14213D] p-5 text-white">
+          <div class="absolute inset-y-0 left-0 w-1 ${st.bar}"></div>
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <p class="text-xs text-white/80">${esc(s.name)}</p>
+              <h3 class="truncate font-semibold text-white">${esc(r.product)} × ${r.qty}</h3>
+            </div>
+            <span class="shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${st.chip}">${st.label}</span>
+          </div>
+          <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
+            <div><p class="text-xs text-white/70">Horario de retiro</p><p class="font-medium text-white">${esc(r.pickup)}</p></div>
+            <div class="text-right"><p class="text-xs text-white/70">Precio total</p><p class="font-bold text-white">${money(tot)}</p></div>
+          </div>
+          <p class="mt-3 text-xs text-white/70">${esc(s.address)}</p>
+          <p class="mt-2 text-xs text-white/80">${payNote(r)}</p>
+          ${note ? `<p class="mt-2 text-xs text-white/80">${note}</p>` : ""}
+          ${r.status === "alternativa" ? offerBox(r, s) : ""}
+          ${r.status === "entregada" ? reviewBox(r) : ""}
+          ${r.status === "pendiente" ? `<button type="button" data-cancel="${r.id}" class="mt-4 w-full rounded-xl border border-white/30 py-2 text-sm text-white transition hover:border-white hover:bg-white/10">Cancelar reserva</button>` : ""}
+        </article>`;
+    }
+
+    function metric(label, value) {
+      return `
+        <div class="card-hover relative overflow-hidden rounded-2xl border border-white/20 bg-[#14213D] p-5">
+          <p class="text-xs text-white/80">${label}</p>
+          <p class="mt-2 text-3xl font-black text-white">${value}</p>
+        </div>`;
+    }
+
+    function offerPanel(r, opts) {
+      if (!opts.length) {
+        return `<p class="mt-3 text-xs text-white/80">No hay otros productos con stock para ofrecer en este local.</p>`;
+      }
+      return `
+        <div class="mt-3 rounded-xl border border-white/20 bg-[#1E2F55] p-3">
+          <label class="block text-xs text-white">Producto para ofrecer
+            <select id="offer-${r.id}" class="mt-1 w-full rounded-xl border border-white/25 bg-[#14213D] px-3 py-2 text-sm text-white focus:border-white focus:outline-none">
+              <option value="">Elegí un producto</option>
+              ${opts.map(o => `<option value="${o.i}">${esc(o.p.name)} · ${money(o.p.price)} · ${o.p.stock} disp.</option>`).join("")}
+            </select>
+          </label>
+          <button type="button" data-send-offer="${r.id}" class="btn-neon mt-3 w-full rounded-xl py-2 text-sm font-semibold">Enviar oferta al cliente</button>
+        </div>`;
+    }
+
+    function incomingCard(r) {
+      const st = STATUS[r.status];
+      const s = shopById(r.shop);
+      const tot = r.price == null ? null : r.price * r.qty;
+      let actions = "";
+      if (r.status === "pendiente") {
+        const opts = s.products.map((p, i) => ({ p, i })).filter(o => o.p.name !== r.product && o.p.stock > 0);
+        const open = S.offerOpen === r.id;
+        actions = `
+          <div class="mt-4 flex gap-2">
+            <button type="button" data-accept="${r.id}" class="btn-neon flex-1 rounded-xl py-2 text-sm font-semibold">Aceptar</button>
+            <button type="button" data-reject="${r.id}" class="flex-1 rounded-xl border border-white/40 py-2 text-sm font-semibold text-white transition hover:border-white hover:bg-white/10">Rechazar</button>
+          </div>
+          <button type="button" data-offer-toggle="${r.id}" class="mt-2 w-full rounded-xl border border-white/40 py-2 text-sm font-semibold text-white transition hover:border-white hover:bg-white/10">${open ? "Cerrar ofrecer otro producto" : "Ofrecer otro producto"}</button>
+          ${open ? offerPanel(r, opts) : ""}`;
+      } else if (r.status === "alternativa") {
+        actions = `
+          <div class="mt-4 rounded-xl border border-white/30 bg-[#14213D] p-3 text-sm text-white">
+            Oferta enviada: <span class="font-semibold">${esc(r.offer.name)}</span> · ${money(r.offer.price)}
+            <p class="mt-1 text-xs text-white/80">Esperando la respuesta del cliente.</p>
+          </div>
+          <button type="button" data-cancel-offer="${r.id}" class="mt-2 w-full rounded-xl border border-white/40 py-2 text-sm font-semibold text-white transition hover:border-white hover:bg-white/10">Cancelar oferta</button>`;
+      } else if (r.status === "aceptada") {
+        actions = `<button type="button" data-deliver="${r.id}" class="mt-4 w-full rounded-xl border border-white/40 py-2 text-sm font-semibold text-white transition hover:border-white hover:bg-white/10">Marcar como entregada</button>`;
+      }
+      return `
+        <article class="rounded-2xl border border-white/20 bg-[#1E2F55] p-4 text-white">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <h4 class="truncate font-semibold text-white">${esc(r.product)} × ${r.qty}</h4>
+              <p class="text-xs text-white/80">Cliente: ${esc(r.who)} · Retira: ${esc(r.pickup)}</p>
+            </div>
+            <span class="shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${st.chip}">${st.label}</span>
+          </div>
+          <div class="mt-3 flex items-center justify-between text-sm">
+            <span class="text-white/80">Total</span><span class="font-bold text-white">${money(tot)}</span>
+          </div>
+          <p class="mt-2 text-xs text-white/80">${payNote(r)}</p>
+          ${actions}
+        </article>`;
+    }
+
+    function renderResList() {
+      const list$ = $("#res-list");
+      if (!list$) return;
+      const inc = S.res.filter(r => r.shop === MERCHANT_ID);
+      const tab = RES_TABS.find(x => x.key === S.resFilter) || RES_TABS[0];
+      const q = norm(S.resQ.trim());
+      const shown = inc.filter(r => (!tab.status || r.status === tab.status) &&
+        (!q || [r.product, r.who, r.pickup, r.offer && r.offer.name].filter(Boolean).some(v => norm(v).includes(q))));
+      $("#res-count").textContent = `${shown.length} de ${inc.length} reservas`;
+      list$.innerHTML = shown.length
+        ? shown.map(incomingCard).join("")
+        : `<div class="py-10 text-center text-sm text-white/80">${inc.length ? "No hay reservas con ese filtro o búsqueda." : "Todavía no llegaron reservas. Aparecen acá en cuanto un cliente reserve."}</div>`;
+    }
+
+    function renderDashboard() {
+      const s = shopById(MERCHANT_ID);
+      const inc = S.res.filter(r => r.shop === MERCHANT_ID);
+      const delivered = inc.filter(r => r.status === "entregada").length;
+      const toAnswer = inc.filter(r => r.status === "pendiente").length;
+      const a = avg(s.id);
+      const reviews = REVIEWS.filter(x => x.shop === MERCHANT_ID);
+      const tabs = RES_TABS.map(tab => {
+        const n = tab.status ? inc.filter(r => r.status === tab.status).length : inc.length;
+        const on = S.resFilter === tab.key;
+        return `<button type="button" data-res-filter="${tab.key}" aria-pressed="${on}"
+          class="rounded-full border px-3 py-1.5 text-xs font-semibold transition ${on ? "border-white bg-white text-black" : "border-white/30 text-white hover:bg-white/10"}">${tab.label} <span class="${on ? "text-white/70" : "text-white/70"}">${n}</span></button>`;
+      }).join("");
+      $("#dashboard-content").innerHTML = `
+        <div class="rounded-2xl border border-amber-300/60 bg-[#14213D] p-4 text-sm text-white shadow-[0_0_30px_-12px_rgba(252,211,77,.5)]">
+          <p><span class="font-bold text-[#FFC93C]">Importante:</span> en las reservas con pago online, el monto queda retenido y se cobra al aceptar.</p>
+        </div>
+
+        <div class="mt-6 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 class="text-2xl font-bold text-[#14213D]">Panel de ${esc(s.name)}</h2>
+            <p class="text-sm text-[#14213D]/80">${s.products.length} productos cargados · Horario ${s.open}:00 a ${s.close}:00</p>
+          </div>
+          <button type="button" data-upload class="btn-neon rounded-xl px-5 py-3 text-sm font-semibold">+ Cargar o actualizar lista de precios / productos</button>
+        </div>
+
+        <div class="mt-6 grid gap-4 sm:grid-cols-3">
+          ${metric("Vistas del local", s.views)}
+          ${metric("Reservas recibidas", inc.length)}
+          ${metric("Entregas realizadas", delivered)}
+        </div>
+
+        <div class="mt-6 grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+          <section class="glass rounded-3xl p-5">
+            <div class="flex items-center justify-between gap-3">
+              <h3 class="font-semibold text-white">Reservas entrantes</h3>
+              <span class="text-xs text-white/80">${toAnswer} por responder</span>
+            </div>
+            <div class="mt-4 flex flex-wrap gap-2">${tabs}</div>
+            <input id="res-search" type="search" autocomplete="off" value="${esc(S.resQ)}" placeholder="Buscar por producto, cliente u horario"
+              class="mt-3 w-full rounded-xl border border-white/25 bg-[#1E2F55] px-3 py-2.5 text-sm text-white placeholder-white/55 focus:border-white focus:outline-none">
+            <p id="res-count" class="mt-2 text-xs text-white/80"></p>
+            <div id="res-list" class="mt-4 space-y-3"></div>
+          </section>
+
+          <section class="glass rounded-3xl p-5">
+            <div class="flex items-center justify-between">
+              <h3 class="font-semibold text-white">Reseñas de tus clientes</h3>
+              <span class="flex items-center gap-2 text-sm">${stars(a)}<span class="text-white">${a ? a.toFixed(1).replace(".", ",") : "-"}</span></span>
+            </div>
+            <div class="mt-4 space-y-3">
+              ${reviews.length ? reviews.map(rv => `
+                <article class="rounded-2xl border border-white/20 bg-[#1E2F55] p-4 text-white">
+                  <div class="flex items-center justify-between gap-2">
+                    ${stars(rv.stars)}<span class="text-xs text-white/70">${rv.date}</span>
+                  </div>
+                  <p class="mt-2 text-sm text-white">${esc(rv.text)}</p>
+                  <div class="mt-3 flex items-center gap-2">
+                    <span class="grid h-7 w-7 place-items-center rounded-full border border-white/60 bg-[#1E2F55] text-[11px] font-bold text-white">${esc(rv.who.charAt(0))}</span>
+                    <span class="text-xs text-white/80">${esc(rv.who)}</span>
+                  </div>
+                </article>`).join("") : `<p class="py-6 text-center text-sm text-white/80">Todavía no hay reseñas de tus clientes.</p>`}
+            </div>
+          </section>
+        </div>`;
+      renderResList();
+    }
+
+    function openModal(html) {
+      $("#modal-box").innerHTML = html;
+      $("#modal").classList.remove("hidden");
+      $("#modal").classList.add("flex");
+    }
+
+    function closeModal() {
+      $("#modal").classList.add("hidden");
+      $("#modal").classList.remove("flex");
+    }
+
+    const HDR_RE = /producto|nombre|descrip|articulo|detalle|precio|importe|valor|pvp|stock|cantidad|existencia|unidades|disponible/;
+    let UP = { all: null, rows: false, hdrRow: -1, map: { n: 0, p: 1, s: -1 }, text: "", err: "", fileName: "" };
+
+    function detectHeader(all) {
+      for (let i = 0; i < Math.min(all.length, 15); i++) {
+        const hits = all[i].filter(c => HDR_RE.test(norm(c))).length;
+        if (hits >= 2) return i;
+      }
+      return -1;
+    }
+
+    function guessMap(data, ncols) {
+      const ratio = Array.from({ length: ncols }, (_, i) => data.length ? data.filter(r => parsePrice(r[i]) !== null).length / data.length : 0);
+      let n = 0, p = 0;
+      for (let i = 0; i < ncols; i++) if (ratio[i] < ratio[n]) n = i;
+      for (let i = 0; i < ncols; i++) if (i !== n && ratio[i] > ratio[p] || p === n) p = i;
+      let s = -1;
+      for (let i = 0; i < ncols && s === -1; i++) {
+        if (i === n || i === p || !data.length) continue;
+        if (data.every(r => /^\d+$/.test(String(r[i] || "").trim()))) s = i;
+      }
+      return { n, p, s };
+    }
+
+    function mapFromHeader(header, base) {
+      const m = Object.assign({}, base);
+      let nSet = false, pSet = false, sSet = false;
+      header.forEach((c, i) => {
+        const k = norm(c);
+        if (!nSet && /producto|nombre|descrip|articulo|detalle/.test(k)) { m.n = i; nSet = true; }
+        else if (!pSet && /precio|importe|valor|pvp/.test(k)) { m.p = i; pSet = true; }
+        else if (!sSet && /stock|cant|existen|unidad|disponib/.test(k)) { m.s = i; sSet = true; }
+      });
+      return m;
+    }
+
+    function setUploadRows(all) {
+      const rows = all.filter(r => r.some(c => c !== ""));
+      if (!rows.length) { UP.all = null; UP.rows = false; UP.err = "El archivo no tiene filas para leer."; return; }
+      const ncols = Math.max(...rows.map(r => r.length));
+      const padded = rows.map(r => Array.from({ length: ncols }, (_, i) => r[i] ?? ""));
+      const hdrRow = detectHeader(padded);
+      const data = padded.slice(hdrRow + 1);
+      let map = guessMap(data, ncols);
+      if (hdrRow >= 0) map = mapFromHeader(padded[hdrRow], map);
+      UP.all = padded;
+      UP.hdrRow = hdrRow;
+      UP.map = map;
+      UP.rows = true;
+      UP.err = data.length ? "" : "No encontramos filas de productos debajo de los títulos.";
+    }
+
+    function uploadItems() {
+      if (!UP.all) return [];
+      const data = UP.all.slice(UP.hdrRow + 1);
+      const out = [];
+      data.forEach(r => {
+        const name = String(r[UP.map.n] || "").trim();
+        if (!name || /^total/i.test(name)) return;
+        const price = parsePrice(r[UP.map.p]);
+        const raw = UP.map.s >= 0 ? parseInt(String(r[UP.map.s] || "").replace(/[^\d-]/g, ""), 10) : NaN;
+        out.push({ name, price, stock: isNaN(raw) ? null : Math.max(0, raw) });
+      });
+      return out;
+    }
+
+    function readUploadFile(file) {
+      UP.fileName = file.name;
+      UP.err = "";
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          if (typeof XLSX === "undefined") throw new Error("nolib");
+          const wb = XLSX.read(new Uint8Array(reader.result), { type: "array" });
+          const sheet = wb.Sheets[wb.SheetNames[0]];
+          const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: "" });
+          setUploadRows(rows.map(r => r.map(c => String(c).trim())));
+        } catch (err) {
+          UP.all = null;
+          UP.rows = false;
+          UP.err = err.message === "nolib"
+            ? "No pudimos cargar el lector de Excel. Revisá la conexión o guardá el archivo como CSV."
+            : "No pudimos leer ese archivo. Probá guardarlo como .xlsx o CSV.";
+        }
+        renderUpload();
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function readUploadText() {
+      const lines = UP.text.split(/\r?\n/).filter(l => l.trim());
+      if (!lines.length) { UP.err = "Pegá primero las filas de tu planilla."; UP.rows = false; renderUpload(); return; }
+      const delim = lines[0].includes("\t") ? "\t" : (lines[0].split(";").length >= lines[0].split(",").length ? ";" : ",");
+      UP.fileName = "";
+      setUploadRows(lines.map(l => l.split(delim).map(c => c.trim().replace(/^"|"$/g, ""))));
+      renderUpload();
+    }
+
+    function colNames() {
+      const n = UP.all ? UP.all[0].length : 0;
+      return Array.from({ length: n }, (_, i) => {
+        const h = UP.hdrRow >= 0 ? UP.all[UP.hdrRow][i] : "";
+        return h || "Columna " + (i + 1);
+      });
+    }
+
+    function mapSelect(key, label, required) {
+      const names = colNames();
+      const current = UP.map[key];
+      const opts = names.map((nm, i) => `<option value="${i}" ${i === current ? "selected" : ""}>${esc(nm)}</option>`).join("");
+      const none = required ? "" : `<option value="-1" ${current === -1 ? "selected" : ""}>No hay columna de stock</option>`;
+      return `<label class="block text-xs text-white">${label}
+        <select id="map-${key}" class="mt-1 w-full rounded-xl border border-white/25 bg-[#1E2F55] px-3 py-2 text-sm text-white focus:border-white focus:outline-none">${none}${opts}</select></label>`;
+    }
+
+    function uploadMappingHTML() {
+      const items = uploadItems();
+      const preview = items.slice(0, 5);
+      const rowsHTML = preview.map(it => `
+        <tr>
+          <td class="border-b border-white/10 px-3 py-2 text-white">${esc(it.name)}</td>
+          <td class="border-b border-white/10 px-3 py-2 text-right text-white">${money(it.price)}</td>
+          <td class="border-b border-white/10 px-3 py-2 text-right text-white">${it.stock == null ? "-" : it.stock}</td>
+        </tr>`).join("");
+      return `
+        <div class="mt-5 rounded-2xl border border-white/20 bg-[#1E2F55] p-4">
+          <p class="text-sm font-semibold text-white">Revisá las columnas</p>
+          <p class="mt-1 text-xs text-white/80">${UP.hdrRow >= 0 ? `Detectamos los títulos en la fila ${UP.hdrRow + 1}. Si alguna columna no coincide, cambiala acá.` : "No encontramos títulos. Elegí cada columna a mano."}</p>
+          <div class="mt-3 grid gap-3 sm:grid-cols-3">
+            ${mapSelect("n", "Producto", true)}
+            ${mapSelect("p", "Precio", true)}
+            ${mapSelect("s", "Stock", false)}
+          </div>
+          <div class="mt-4 overflow-x-auto rounded-xl border border-white/15">
+            <table class="w-full text-left text-xs">
+              <thead><tr>
+                <th class="border-b border-white/20 px-3 py-2 text-white">Producto</th>
+                <th class="border-b border-white/20 px-3 py-2 text-right text-white">Precio</th>
+                <th class="border-b border-white/20 px-3 py-2 text-right text-white">Stock</th>
+              </tr></thead>
+              <tbody>${rowsHTML || `<tr><td colspan="3" class="px-3 py-4 text-center text-white/80">No hay productos para mostrar.</td></tr>`}</tbody>
+            </table>
+          </div>
+          <p class="mt-2 text-xs text-white/80">Vista previa de ${preview.length} de ${items.length} productos. Los que no tengan precio se muestran como "A consultar".</p>
+        </div>`;
+    }
+
+    function renderUpload() {
+      const body = $("#upload-body");
+      if (!body) return;
+      const count = uploadItems().length;
+      body.innerHTML = `
+        <label for="upload-file" class="block text-sm font-medium text-white">Archivo de Excel o CSV</label>
+        <input id="upload-file" type="file" accept=".xlsx,.xls,.csv" class="mt-2 w-full rounded-xl border border-white/25 bg-[#1E2F55] p-3 text-sm text-white file:mr-3 file:rounded-lg file:border-0 file:bg-white file:px-3 file:py-1.5 file:font-semibold file:text-black">
+        ${UP.fileName ? `<p class="mt-1 text-xs text-white/80">Archivo cargado: ${esc(UP.fileName)}</p>` : ""}
+        <details class="mt-4">
+          <summary class="cursor-pointer text-sm text-white/80">O pegá las filas copiadas de tu planilla</summary>
+          <textarea id="upload-text" rows="4" placeholder="Producto;Precio;Stock" class="mt-2 w-full rounded-2xl border border-white/25 bg-[#1E2F55] p-3 font-mono text-sm text-white placeholder-white/55 focus:border-white focus:outline-none">${esc(UP.text)}</textarea>
+          <button type="button" data-read-upload class="btn-neon mt-2 rounded-xl px-4 py-2 text-sm font-semibold">Leer texto pegado</button>
+        </details>
+        <p id="upload-err" class="mt-3 min-h-[1.25rem] text-sm font-semibold text-white">${esc(UP.err)}</p>
+        ${UP.rows ? uploadMappingHTML() : ""}
+        <div class="mt-4 flex justify-end gap-2">
+          <button type="button" data-close class="rounded-xl border border-white/30 px-4 py-2 text-sm text-white hover:bg-white/10">Cancelar</button>
+          <button type="button" data-save-upload class="btn-neon rounded-xl px-5 py-2 text-sm font-semibold" ${count ? "" : "disabled"}>Importar ${count ? count + " producto" + (count === 1 ? "" : "s") : "lista"}</button>
+        </div>`;
+    }
+
+    function openUpload() {
+      UP = { all: null, rows: false, hdrRow: -1, map: { n: 0, p: 1, s: -1 }, text: "", err: "", fileName: "" };
+      openModal(`
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <h3 class="text-lg font-bold text-white">Cargar o actualizar lista de precios</h3>
+            <p class="mt-1 text-sm text-white/80">Subí tu planilla de Excel o CSV. La app busca las columnas de producto, precio y stock, y te deja revisarlas antes de guardar. Si el producto ya existe, se actualiza.</p>
+          </div>
+          <button type="button" data-close aria-label="Cerrar" class="rounded-lg p-1 text-white hover:bg-white/10">✕</button>
+        </div>
+        <div id="upload-body" class="mt-4"></div>`);
+      renderUpload();
+    }
+
+    function saveUpload() {
+      const items = uploadItems();
+      if (!items.length) {
+        UP.err = "No hay productos para importar. Revisá las columnas.";
+        renderUpload();
+        return;
+      }
+      const s = shopById(MERCHANT_ID);
+      let updated = 0, added = 0;
+      items.forEach(it => {
+        const existing = s.products.find(p => norm(p.name) === norm(it.name));
+        if (existing) {
+          existing.price = it.price;
+          if (it.stock !== null) existing.stock = it.stock;
+          updated++;
+        } else {
+          s.products.push({ name: it.name, price: it.price, stock: it.stock ?? 0, img: null, desc: "Cargado desde la lista de precios." });
+          added++;
+        }
+      });
+      closeModal();
+      toast(`${updated} actualizado(s) y ${added} nuevo(s) en tu catálogo.`);
+      renderAll();
+    }
+
+    let toastTimer;
+    function toast(msg) {
+      $("#toast-text").textContent = msg;
+      const t = $("#toast");
+      t.classList.remove("opacity-0", "translate-y-4");
+      t.classList.add("opacity-100");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        t.classList.add("opacity-0", "translate-y-4");
+        t.classList.remove("opacity-100");
+      }, 2600);
+    }
+
+    function restoreStock(r) {
+      const p = shopById(r.shop).products.find(x => x.name === r.product);
+      if (p) p.stock += r.qty;
+    }
+
+    function payNote(r) {
+      if (!r.pay || r.pay === "local") return "Pagás en el local al retirar.";
+      const m = PAYMENTS.find(x => x.id === r.pay);
+      if (r.status === "rechazada") return "Pago online: no se cobró nada.";
+      if (r.status === "aceptada" || r.status === "entregada") return `Pago online con ${m.label}: cobrado al aceptar la reserva.`;
+      return `Pago online con ${m.label}: monto retenido, se cobra cuando el comercio acepta.`;
+    }
+
+    function showInsufficient(m, amount) {
+      openModal(`
+        <div class="flex items-start gap-4">
+          <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-white/60 bg-[#1E2F55] text-xl font-black text-white">!</div>
+          <div>
+            <h3 class="text-lg font-bold text-white">Dinero insuficiente</h3>
+            <p class="mt-1 text-sm text-white/85">${esc(m.label)} no tiene fondos suficientes${amount ? ` para pagar ${money(amount)}` : ""}. No se realizó la reserva y no se cobró nada.</p>
+          </div>
+        </div>
+        <p class="mt-4 text-xs text-white/75">Podés elegir otro medio de pago (Banco BBVA o Mercado Pago) o pagar en el local.</p>
+        <div class="mt-5 flex justify-end gap-2">
+          <button type="button" data-close class="rounded-xl border border-white/30 px-4 py-2 text-sm text-white hover:bg-white/10">Cerrar</button>
+          <button type="button" data-close-pick class="btn-neon rounded-xl px-4 py-2 text-sm font-semibold">Elegir otro medio</button>
+        </div>`);
+    }
+
+    function reserve(shopId, idx, qty = 1, payId = "local") {
+      const s = shopById(shopId), p = s.products[idx];
+      if (!p || p.stock <= 0) return;
+      if (p.stock < qty) { toast(`Solo quedan ${p.stock} unidades de ${p.name}.`); return; }
+      p.stock -= qty;
+      const existing = S.res.find(r => r.shop === shopId && r.product === p.name && r.status === "pendiente" && (r.pay || "local") === payId);
+      if (existing) {
+        existing.qty += qty;
+      } else {
+        S.res.unshift({ id: S.nextId++, shop: shopId, product: p.name, price: p.price, qty, pickup: S.slot, status: "pendiente", who: CLIENT, pay: payId });
+      }
+      toast(`Reservaste ${p.name} en ${s.name}. Lo encontrás en Mis reservas.`);
+      renderAll();
+    }
+
+    function cancelRes(id) {
+      const r = S.res.find(x => x.id === id);
+      if (!r) return;
+      restoreStock(r);
+      S.res = S.res.filter(x => x.id !== id);
+      toast("Reserva cancelada. El stock volvió a estar disponible.");
+      renderAll();
+    }
+
+    function changeRes(id, fn) {
+      const r = S.res.find(x => x.id === id);
+      if (!r) return;
+      fn(r);
+      renderAll();
+    }
+
+    function switchTab(tab) {
+      S.tab = tab;
+      ["buscar", "reservas", "comerciante"].forEach(t => $("#view-" + t).classList.toggle("hidden", t !== tab));
+      $$("[data-tab]").forEach(b => {
+        const on = b.dataset.tab === tab;
+        b.classList.toggle("bg-white", on);
+        b.classList.toggle("text-black", on);
+        b.classList.toggle("font-semibold", on);
+        b.classList.toggle("text-white", !on);
+      });
+      renderAll();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function updateBadge() {
+      const n = S.res.filter(r => r.status === "pendiente" || r.status === "aceptada").length;
+      const b = $("#reservas-badge");
+      b.textContent = n;
+      b.classList.toggle("hidden", n === 0);
+    }
+
+    function renderAll() {
+      updateBadge();
+      renderShopList();
+      drawMap();
+      renderCatalog();
+      renderReservas();
+      renderDashboard();
+    }
+
+    function applyLocation() {
+      const res = resolveLocation($("#location").value);
+      S.locMsg = res.msg;
+      setZone(res.zone);
+      renderAll();
+    }
+
+    document.addEventListener("click", e => {
+      const t = e.target.closest("[data-tab],[data-go],[data-shop],[data-pin],[data-open],[data-back-product],[data-reserve],[data-reserve-detail],[data-cancel],[data-accept],[data-reject],[data-deliver],[data-offer-toggle],[data-send-offer],[data-cancel-offer],[data-accept-offer],[data-reject-offer],[data-rstar],[data-publish-review],[data-res-filter],[data-upload],[data-save-upload],[data-read-upload],[data-close-pick],[data-close]");
+      if (!t) return;
+      const d = t.dataset;
+      if (d.tab) return switchTab(d.tab);
+      if (d.go) return switchTab(d.go);
+      if (d.shop !== undefined || d.pin !== undefined) {
+        const id = Number(d.shop ?? d.pin);
+        if (S.shopId !== id) shopById(id).views++;
+        S.shopId = S.shopId === id ? null : id;
+        S.catQ = "";
+        S.productIdx = null;
+        renderAll();
+        return;
+      }
+      if (d.open) {
+        const [sid, idx] = d.open.split(":").map(Number);
+        S.shopId = sid;
+        S.productIdx = idx;
+        renderAll();
+        const box = $("#catalog-wrap");
+        if (box) box.scrollIntoView({ behavior: "smooth", block: "start" });
+        return;
+      }
+      if (d.backProduct !== undefined) {
+        S.productIdx = null;
+        renderAll();
+        return;
+      }
+      if (d.reserveDetail) {
+        const [sid, idx] = d.reserveDetail.split(":").map(Number);
+        S.slot = $("#slot-detail").value;
+        const payId = (document.querySelector('input[name="pay-detail"]:checked') || {}).value || "local";
+        const m = PAYMENTS.find(x => x.id === payId);
+        const qty = Number($("#qty-detail").value);
+        if (!m.funds) return showInsufficient(m, shopById(sid).products[idx].price * qty);
+        return reserve(sid, idx, qty, payId);
+      }
+      if (d.reserve) {
+        const [sid, idx] = d.reserve.split(":").map(Number);
+        return reserve(sid, idx);
+      }
+      if (d.cancel) return cancelRes(Number(d.cancel));
+      if (d.accept) return changeRes(Number(d.accept), r => { r.status = "aceptada"; toast("Reserva aceptada. El monto se cobra al cliente."); });
+      if (d.reject) return changeRes(Number(d.reject), r => { restoreStock(r); r.status = "rechazada"; toast("Reserva rechazada. El stock volvió a estar disponible."); });
+      if (d.deliver) return changeRes(Number(d.deliver), r => { r.status = "entregada"; toast("Entrega registrada."); });
+      if (d.resFilter) {
+        S.resFilter = d.resFilter;
+        renderAll();
+        return;
+      }
+      if (d.rstar) {
+        const [id, n] = d.rstar.split(":").map(Number);
+        const r = S.res.find(x => x.id === id);
+        if (r) { r.draftStars = n; renderAll(); }
+        return;
+      }
+      if (d.publishReview) {
+        const id = Number(d.publishReview);
+        const r = S.res.find(x => x.id === id);
+        if (!r) return;
+        if (!r.draftStars) { toast("Elegí cuántas estrellas le das al comercio."); return; }
+        const text = (r.draftText || "").trim() || "Sin comentario.";
+        REVIEWS.unshift({ shop: r.shop, stars: r.draftStars, text, who: r.who, date: new Date().toLocaleDateString("es-AR") });
+        r.reviewed = { stars: r.draftStars, text };
+        toast("¡Gracias! Tu reseña ya se ve en el comercio.");
+        renderAll();
+        return;
+      }
+      if (d.offerToggle) {
+        const id = Number(d.offerToggle);
+        S.offerOpen = S.offerOpen === id ? null : id;
+        renderAll();
+        return;
+      }
+      if (d.sendOffer) {
+        const id = Number(d.sendOffer);
+        const pick = ($("#offer-" + id) || {}).value || "";
+        if (pick === "") { toast("Elegí un producto para ofrecer."); return; }
+        const r0 = S.res.find(x => x.id === id);
+        const op = shopById(r0.shop).products[Number(pick)];
+        return changeRes(id, r => {
+          r.offer = { idx: Number(pick), name: op.name, price: op.price };
+          r.status = "alternativa";
+          S.offerOpen = null;
+          toast("Oferta enviada al cliente. Podés cancelarla mientras espera respuesta.");
+        });
+      }
+      if (d.cancelOffer) return changeRes(Number(d.cancelOffer), r => { r.offer = null; r.status = "pendiente"; toast("Oferta cancelada."); });
+      if (d.acceptOffer) {
+        const id = Number(d.acceptOffer);
+        const r0 = S.res.find(x => x.id === id);
+        const op = shopById(r0.shop).products[r0.offer.idx];
+        if (!op || op.stock < r0.qty) { toast("Ya no hay stock de esa alternativa."); return; }
+        restoreStock(r0);
+        op.stock -= r0.qty;
+        return changeRes(id, r => {
+          r.product = op.name;
+          r.price = op.price;
+          r.offer = null;
+          r.status = "aceptada";
+          toast("Aceptaste la alternativa. Podés retirarla en el local.");
+        });
+      }
+      if (d.rejectOffer) {
+        const id = Number(d.rejectOffer);
+        const r0 = S.res.find(x => x.id === id);
+        restoreStock(r0);
+        return changeRes(id, r => { r.status = "rechazada"; r.offer = null; toast("No se cobró nada. El stock volvió a estar disponible."); });
+      }
+      if (d.upload !== undefined) return openUpload();
+      if (d.saveUpload !== undefined) return saveUpload();
+      if (d.readUpload !== undefined) return readUploadText();
+      if (d.closePick !== undefined) {
+        closeModal();
+        const bbva = document.querySelector('input[name="pay-detail"][value="bbva"]');
+        if (bbva) bbva.checked = true;
+        return;
+      }
+      if (d.close !== undefined) return closeModal();
+    });
+
+    document.addEventListener("change", e => {
+      if (e.target.id === "slot" || e.target.id === "slot-detail") S.slot = e.target.value;
+    });
+
+    document.addEventListener("change", e => {
+      if (e.target.id === "upload-file" && e.target.files[0]) return readUploadFile(e.target.files[0]);
+      if (e.target.id && e.target.id.startsWith("map-")) {
+        UP.map[e.target.id.slice(4)] = Number(e.target.value);
+        renderUpload();
+      }
+    });
+    document.addEventListener("input", e => {
+      if (e.target.id === "upload-text") UP.text = e.target.value;
+      if (e.target.id === "res-search") {
+        S.resQ = e.target.value;
+        renderResList();
+      }
+      if (e.target.id && e.target.id.startsWith("rtxt-")) {
+        const r = S.res.find(x => x.id === Number(e.target.id.slice(5)));
+        if (r) r.draftText = e.target.value;
+      }
+      if (e.target.id === "catq") {
+        S.catQ = e.target.value;
+        const s = shopById(S.shopId);
+        if (s) renderCatGrid(s);
+      }
+    });
+
+    $("#location").addEventListener("input", applyLocation);
+
+    $("#search").addEventListener("input", e => {
+      S.query = e.target.value;
+      renderShopList();
+      drawMap();
+    });
+
+    $("#radius").addEventListener("input", e => {
+      S.radius = Number(e.target.value);
+      $("#radius-value").textContent = S.radius + " km";
+      MAP.z = fitZoom();
+      renderShopList();
+      drawMap();
+    });
+
+    $("#zoom-in").addEventListener("click", () => zoomBy(1.4));
+    $("#zoom-out").addEventListener("click", () => zoomBy(1 / 1.4));
+    $("#zoom-fit").addEventListener("click", () => recenter(true));
+
+    const mapEl = $("#map");
+    mapEl.addEventListener("wheel", e => {
+      e.preventDefault();
+      zoomBy(e.deltaY < 0 ? 1.15 : 1 / 1.15, e.clientX, e.clientY);
+    }, { passive: false });
+
+    mapEl.addEventListener("pointerdown", e => {
+      if (e.target.closest("[data-pin]") || e.button !== 0) return;
+      MAP.dragging = true;
+      MAP.lastX = e.clientX;
+      MAP.lastY = e.clientY;
+      mapEl.classList.add("dragging");
+      mapEl.setPointerCapture(e.pointerId);
+    });
+    mapEl.addEventListener("pointermove", e => {
+      if (!MAP.dragging) return;
+      MAP.cx -= (e.clientX - MAP.lastX) / MAP.z;
+      MAP.cy -= (e.clientY - MAP.lastY) / MAP.z;
+      MAP.lastX = e.clientX;
+      MAP.lastY = e.clientY;
+      drawMap();
+    });
+    const endDrag = e => {
+      MAP.dragging = false;
+      mapEl.classList.remove("dragging");
+      if (mapEl.hasPointerCapture && mapEl.hasPointerCapture(e.pointerId)) mapEl.releasePointerCapture(e.pointerId);
+    };
+    mapEl.addEventListener("pointerup", endDrag);
+    mapEl.addEventListener("pointercancel", endDrag);
+
+    window.addEventListener("resize", drawMap);
+
+    $("#modal").addEventListener("click", e => {
+      if (e.target.id === "modal") closeModal();
+    });
+
+    document.addEventListener("keydown", e => {
+      if (e.key === "Escape") closeModal();
+    });
+
+    SHOPS.forEach(s => {
+      const rad = s.angle * Math.PI / 180;
+      s.dx = s.km * Math.cos(rad);
+      s.dy = s.km * Math.sin(rad);
+    });
+
+    applyLocation();
+    switchTab("buscar");
+  </script>
+</body>
+</html>

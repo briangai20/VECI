@@ -1,0 +1,14 @@
+# Dependencias y builds (la app tiene su propio web/.gitignore)
+node_modules/
+.next/
+
+# Variables de entorno: nunca se suben
+.env*
+!.env.example
+
+# Configuración personal de Claude Code
+.claude/settings.local.json
+
+# Windows
+Thumbs.db
+desktop.ini

@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VECI | Conectá con el comercio de tu barrio</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <style>
+    body { background-color: #0b0d12; }
+    .bg-aurora {
+      background:
+        radial-gradient(900px 500px at 8% -10%, rgba(34,211,238,.13), transparent 60%),
+        radial-gradient(800px 520px at 100% 0%, rgba(139,92,246,.15), transparent 60%),
+        radial-gradient(700px 500px at 50% 115%, rgba(52,211,153,.09), transparent 60%),
+        #0b0d12;
+    }
+    .glass {
+      background: rgba(24,24,27,.6);
+      -webkit-backdrop-filter: blur(14px);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(255,255,255,.08);
+      box-shadow: 0 10px 40px -20px rgba(0,0,0,.6);
+    }
+    .grad-text {
+      background: linear-gradient(90deg,#22d3ee,#a78bfa,#34d399);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .btn-neon {
+      background: linear-gradient(90deg,#06b6d4,#8b5cf6,#10b981);
+      background-size: 200% 100%;
+      transition: background-position .6s ease, transform .2s ease, box-shadow .3s ease, opacity .2s ease;
+    }
+    .btn-neon:hover:not(:disabled) {
+      background-position: 100% 0;
+      box-shadow: 0 0 26px -4px rgba(139,92,246,.65);
+      transform: translateY(-1px);
+    }
+    .btn-neon:disabled { opacity: .4; cursor: not-allowed; }
+    .card-hover { transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease, background-color .3s ease; }
+    .card-hover:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 18px 40px -18px rgba(34,211,238,.4);
+      border-color: rgba(34,211,238,.35);
+    }
+    .gridbg {
+      background-image:
+        linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+      background-size: 32px 32px;
+    }
+    .pulse-ring { animation: pulse 2.4s ease-out infinite; }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(34,211,238,.55); }
+      100% { box-shadow: 0 0 0 18px rgba(34,211,238,0); }
+    }
+    .fade-in { animation: fadeUp .45s ease both; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: none; }
+    }
+    input[type=range] { accent-color: #22d3ee; }
+    select option { background: #18181b; color: #e4e4e7; }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body class="bg-aurora min-h-screen font-sans text-zinc-100 antialiased">
+
+  <header class="glass sticky top-0 z-40 border-x-0 border-t-0">
+    <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-4 px-4 py-3 lg:px-6">
+      <div class="mr-auto flex items-center gap-3">
+        <div class="btn-neon grid h-11 w-11 place-items-center rounded-2xl text-lg font-black text-white shadow-lg shadow-violet-900/40">V</div>
+        <div>
+          <p class="grad-text text-2xl font-black leading-none tracking-tight">VECI</p>
+          <p class="mt-1 text-xs text-zinc-400">Conectá con el comercio de tu barrio</p>
+        </div>
+      </div>
+
+      <nav class="flex items-center gap-1 rounded-2xl border border-white/10 bg-zinc-900/70 p-1" aria-label="Secciones">
+        <button type="button" data-tab="buscar" class="rounded-xl px-4 py-2 text-sm font-medium text-zinc-400 transition hover:text-white">Buscar</button>
+        <button type="button" data-tab="reservas" class="flex items-center rounded-xl px-4 py-2 text-sm font-medium text-zinc-400 transition hover:text-white">
+          Mis reservas
+          <span id="reservas-badge" class="ml-1.5 hidden rounded-full bg-cyan-400 px-1.5 text-[11px] font-bold text-zinc-950"></span>
+        </button>
+        <button type="button" data-tab="comerciante" class="rounded-xl px-4 py-2 text-sm font-medium text-zinc-400 transition hover:text-white">Comerciante</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-7xl px-4 py-6 lg:px-6">
+
+    <section id="view-buscar" class="fade-in">
+      <div class="grid gap-6 lg:grid-cols-[340px_1fr]">
+        <aside class="space-y-4">
+          <div class="glass rounded-3xl p-5">
+            <h2 class="text-xs font-semibold uppercase tracking-wider text-zinc-400">Filtros</h2>
+
+            <label for="search" class="mt-4 block text-xs text-zinc-400">Producto o rubro</label>
+            <div class="relative mt-1">
+              <svg xmlns="http://www.w3.org/2000/svg" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16z"/></svg>
+              <input id="search" type="search" autocomplete="off" placeholder="Mercería, tornillos, zapatillas..."
+                class="w-full rounded-xl border border-white/10 bg-zinc-900/80 py-2.5 pl-10 pr-3 text-sm text-zinc-100 placeholder-zinc-500 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-400/30">
+            </div>
+
+            <label for="zone" class="mt-4 block text-xs text-zinc-400">Ubicación</label>
+            <select id="zone" class="mt-1 w-full rounded-xl border border-white/10 bg-zinc-900/80 px-3 py-2.5 text-sm text-zinc-100 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-400/30">
+              <option value="escobar">Mi ubicación actual · Belén de Escobar</option>
+              <option value="pacheco">Pacheco</option>
+              <option value="tigre">Tigre</option>
+            </select>
+
+            <div class="mt-5 flex items-center justify-between">
+              <label for="radius" class="text-xs text-zinc-400">Radio de búsqueda</label>
+              <span id="radius-value" class="rounded-lg bg-cyan-400/10 px-2.5 py-1 text-xs font-bold text-cyan-300">5 km</span>
+            </div>
+            <input id="radius" type="range" min="1" max="20" value="5" class="mt-2 w-full">
+            <div class="mt-1 flex justify-between text-[11px] text-zinc-500"><span>1 km</span><span>20 km</span></div>
+          </div>
+
+          <div class="glass rounded-3xl p-5">
+            <div class="flex items-center justify-between">
+              <h2 class="font-semibold">Comercios cercanos</h2>
+              <span id="shop-count" class="text-xs text-zinc-400"></span>
+            </div>
+            <div id="shop-list" class="mt-4 space-y-3"></div>
+          </div>
+        </aside>
+
+        <div class="space-y-6">
+          <div class="glass rounded-3xl p-5">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h2 class="font-semibold">Mapa interactivo</h2>
+                <p id="map-caption" class="text-xs text-zinc-400"></p>
+              </div>
+              <span class="text-xs text-zinc-500">Tocá un pin para ver el catálogo</span>
+            </div>
+            <div id="map" class="gridbg relative mt-4 aspect-[16/10] overflow-hidden rounded-2xl border border-white/10 bg-zinc-950"></div>
+          </div>
+
+          <div id="catalog-wrap" class="glass rounded-3xl p-5"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-reservas" class="hidden fade-in">
+      <div id="reservas-content"></div>
+    </section>
+
+    <section id="view-comerciante" class="hidden fade-in">
+      <div id="dashboard-content"></div>
+    </section>
+
+  </main>
+
+  <div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+    <div id="modal-box" class="w-full max-w-lg rounded-3xl border border-white/10 bg-zinc-900 p-6 shadow-2xl"></div>
+  </div>
+
+  <div id="toast" class="glass pointer-events-none fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 translate-y-4 rounded-2xl px-5 py-3 text-sm text-zinc-100 opacity-0 shadow-xl transition-all duration-300">
+    <span id="toast-text"></span>
+  </div>
+
+  <script>
+    const IMG = {
+      merceria: "https://images.unsplash.com/photo-1606722590583-6951b5ea92ad?w=800&q=80&auto=format&fit=crop",
+      ferreteria: "https://images.unsplash.com/photo-1581147036324-c1c4b7d3d5b5?w=800&q=80&auto=format&fit=crop",
+      herrajes: "https://images.unsplash.com/photo-1504148455328-c376907d081c?w=800&q=80&auto=format&fit=crop"
+    };
+
+    const ZONES = { escobar: "Belén de Escobar", pacheco: "Pacheco", tigre: "Tigre" };
+    const SLOTS = ["Hoy, 10:00 a 12:00", "Hoy, 16:00 a 18:00", "Mañana, 10:00 a 12:00", "Mañana, 16:00 a 18:00"];
+    const CLIENT = "Laura M.";
+    const MERCHANT_ID = 1;
+
+    const SHOPS = [
+      { id: 1, zone: "escobar", name: "Mercería La Aguja", rubro: "Mercería", address: "San Martín 780, Belén de Escobar", km: 0.5, open: 9, close: 20, angle: 215, views: 38, products: [
+        { name: "Hilo de coser negro", price: 1200, stock: 12, img: IMG.merceria, desc: "Poliéster de alta resistencia para costuras diarias." },
+        { name: "Botones 15 mm x12", price: 850, stock: 2, img: IMG.merceria, desc: "Botones de resina con cuatro agujeros, color negro." },
+        { name: "Cierre 20 cm", price: 850, stock: 8, img: IMG.merceria, desc: "Cierre de nylon con cursor metálico." },
+        { name: "Agujas de coser x10", price: 600, stock: 0, img: IMG.merceria, desc: "Surtido de agujas para tela con punta redonda." }
+      ]},
+      { id: 2, zone: "escobar", name: "Ferretería El Tornillo", rubro: "Ferretería", address: "Av. Ricardo Balbín 1040, Belén de Escobar", km: 1.4, open: 8, close: 18, angle: 20, views: 21, products: [
+        { name: "Tornillos 4x40 (x100)", price: 2300, stock: 20, img: IMG.ferreteria, desc: "Acero galvanizado para madera y tarugos plásticos." },
+        { name: "Cinta aisladora 20 m", price: 1100, stock: 9, img: IMG.ferreteria, desc: "Cinta de PVC resistente al calor y a la humedad." },
+        { name: "Martillo 500 g", price: 8900, stock: 2, img: IMG.ferreteria, desc: "Mango de fibra de vidrio y cabeza de acero forjado." }
+      ]},
+      { id: 3, zone: "escobar", name: "Solido herrajes", rubro: "Herrajes", address: "Rivadavia 1450, Belén de Escobar", km: 1.8, open: 8, close: 18, angle: 110, views: 14, products: [
+        { name: "Corredera pesada 35 cm", price: 9800, stock: 6, img: IMG.herrajes, desc: "Corredera de extensión total con carga de hasta 35 kg." },
+        { name: "Corredera de cajón 35 cm", price: 4200, stock: 4, img: IMG.herrajes, desc: "Corredera telescópica con cierre suave." },
+        { name: "Bisagra cazoleta 0", price: 650, stock: 0, img: IMG.herrajes, desc: "Bisagra de cazoleta con cierre a presión." },
+        { name: "Cerradura Prive 200", price: null, stock: 5, img: IMG.herrajes, desc: "Cerradura de embutir con llave de seguridad." },
+        { name: "Placa MDF blanco 18 mm 2440x1220", price: 62000, stock: 3, img: IMG.herrajes, desc: "Placa de MDF blanca, medida estándar." }
+      ]},
+      { id: 4, zone: "pacheco", name: "Mercería Pacheco", rubro: "Mercería", address: "Av. Cazón 2315, Pacheco", km: 0.6, open: 9, close: 19, angle: 250, views: 17, products: [
+        { name: "Hilo de coser blanco", price: 1300, stock: 10, img: IMG.merceria, desc: "Hilo de algodón para ropa y ropa de hogar." },
+        { name: "Botones 15 mm x12", price: 900, stock: 15, img: IMG.merceria, desc: "Botones lisos de resina, varios colores." },
+        { name: "Agujas de coser x10", price: 650, stock: 1, img: IMG.merceria, desc: "Agujas de punta fina para telas livianas." }
+      ]},
+      { id: 5, zone: "pacheco", name: "Ferretería La Rueda", rubro: "Ferretería", address: "Ruta 27 Km 3, Pacheco", km: 1.4, open: 8, close: 18, angle: 300, views: 9, products: [
+        { name: "Tornillos 4x40 (x100)", price: 2400, stock: 14, img: IMG.ferreteria, desc: "Caja de tornillos de acero para uso general." },
+        { name: "Cinta aisladora 20 m", price: 1150, stock: 7, img: IMG.ferreteria, desc: "Cinta aislante para uso eléctrico doméstico." },
+        { name: "Llave de paso 1/2", price: 3900, stock: 0, img: IMG.ferreteria, desc: "Llave de paso de bronce con maneral de palanca." }
+      ]},
+      { id: 6, zone: "tigre", name: "Herrajes del Delta", rubro: "Herrajes", address: "Lavalle 220, Tigre", km: 2.4, open: 8, close: 18, angle: 150, views: 6, products: [
+        { name: "Corredera pesada 35 cm", price: 9900, stock: 4, img: IMG.herrajes, desc: "Corredera de extensión total para cajones grandes." },
+        { name: "Bisagra cazoleta 9", price: 680, stock: 0, img: IMG.herrajes, desc: "Bisagra de cazoleta con recorte de 9 mm." },
+        { name: "Cerradura Prive 200", price: 5950, stock: 6, img: IMG.herrajes, desc: "Cerradura de seguridad con cilindro de 200 mm." }
+      ]}
+    ];
+
+    const REVIEWS = [
+      { shop: 1, stars: 5, text: "Tenían todo lo que necesitaba y me atendieron rápido.", who: "Marta R.", date: "08/10/2026" },
+      { shop: 1, stars: 4, text: "Buena atención. El hilo estaba como decía la app.", who: "Julián P.", date: "03/10/2026" },
+      { shop: 1, stars: 5, text: "Reservé por la noche y al otro día todo listo para retirar.", who: "Sofía T.", date: "29/09/2026" },
+      { shop: 3, stars: 5, text: "Retiré las correderas sin esperar. Muy prolijos.", who: "Diego L.", date: "06/10/2026" },
+      { shop: 2, stars: 3, text: "Conviene ir con tiempo: hubo que esperar en el mostrador.", who: "Carla S.", date: "01/10/2026" }
+    ];
+
+    const STATUS = {
+      pendiente: { label: "Pendiente de retiro", chip: "bg-cyan-400/15 text-cyan-300 ring-cyan-400/30", bar: "from-cyan-400 to-violet-500" },
+      aceptada: { label: "Pendiente de retiro", chip: "bg-cyan-400/15 text-cyan-300 ring-cyan-400/30", bar: "from-cyan-400 to-emerald-400" },
+      entregada: { label: "Retirada", chip: "bg-zinc-500/15 text-zinc-300 ring-zinc-400/30", bar: "from-zinc-400 to-zinc-600" },
+      rechazada: { label: "Rechazada", chip: "bg-rose-500/15 text-rose-300 ring-rose-400/30", bar: "from-rose-400 to-rose-600" }
+    };
+
+    const S = { tab: "buscar", query: "", zone: "escobar", radius: 5, shopId: null, slot: SLOTS[0], res: [], nextId: 1 };
+
+    const $ = s => document.querySelector(s);
+    const $$ = s => document.querySelectorAll(s);
+    const esc = v => String(v).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const norm = v => String(v).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const money = n => n == null ? "A consultar" : "$ " + Math.round(n).toLocaleString("es-AR");
+    const km = n => n.toFixed(1).replace(".", ",") + " km";
+    const initials = n => n.split(" ").filter(w => w.length > 2).slice(0, 2).map(w => w[0]).join("").toUpperCase();
+    const shopById = id => SHOPS.find(s => s.id === id);
+    const avg = id => {
+      const r = REVIEWS.filter(x => x.shop === id);
+      return r.length ? r.reduce((a, b) => a + b.stars, 0) / r.length : null;
+    };
+    const stars = (v, cls = "text-sm") => {
+      const f = Math.round(v || 0);
+      return `<span class="${cls} whitespace-nowrap tracking-tight"><span class="text-amber-300">${"★".repeat(f)}</span><span class="text-zinc-600">${"★".repeat(5 - f)}</span></span>`;
+    };
+    const isOpen = s => { const h = new Date().getHours(); return h >= s.open && h < s.close; };
+    const travel = d => ({ walk: Math.max(1, Math.round(d * 12)), car: Math.max(2, Math.round(d * 3)) });
+    const openBadge = open => `<span class="shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ${open ? "bg-emerald-400/15 text-emerald-300 ring-emerald-400/30" : "bg-rose-500/15 text-rose-300 ring-rose-400/30"}">${open ? "Abierto" : "Cerrado"}</span>`;
+    const stockBadge = n => n <= 0
+      ? `<span class="rounded-full bg-rose-500/15 px-2.5 py-0.5 text-[11px] font-semibold text-rose-300 ring-1 ring-rose-400/30">Agotado</span>`
+      : n <= 3
+        ? `<span class="rounded-full bg-amber-400/15 px-2.5 py-0.5 text-[11px] font-semibold text-amber-300 ring-1 ring-amber-400/30">Últimas ${n}</span>`
+        : `<span class="rounded-full bg-emerald-400/15 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-300 ring-1 ring-emerald-400/30">Disponible</span>`;
+    const parsePrice = raw => {
+      if (raw == null) return null;
+      let v = String(raw).trim().replace(/^\$\s*/, "").replace(/\s/g, "");
+      if (!v || /consult/i.test(v)) return null;
+      if (v.includes(",") && v.includes(".")) v = v.replace(/\./g, "").replace(",", ".");
+      else if (v.includes(",")) v = v.replace(",", ".");
+      else if (/^\d{1,3}(\.\d{3})+$/.test(v)) v = v.replace(/\./g, "");
+      const n = parseFloat(v);
+      return isNaN(n) ? null : n;
+    };
+
+    function filteredShops() {
+      const q = norm(S.query.trim());
+      return SHOPS
+        .filter(s => s.zone === S.zone && s.km <= S.radius)
+        .filter(s => !q || norm(s.name + " " + s.rubro).includes(q) || s.products.some(p => norm(p.name).includes(q)))
+        .sort((a, b) => a.km - b.km);
+    }
+
+    function renderShopList() {
+      const list = filteredShops();
+      $("#shop-count").textContent = list.length + (list.length === 1 ? " comercio" : " comercios");
+      $("#shop-list").innerHTML = list.length ? list.map(s => {
+        const a = avg(s.id), t = travel(s.km), sel = S.shopId === s.id, open = isOpen(s);
+        return `
+          <button type="button" data-shop="${s.id}" class="card-hover w-full rounded-2xl border p-4 text-left ${sel ? "border-cyan-400/60 bg-cyan-400/5 shadow-[0_0_24px_-10px_rgba(34,211,238,.7)]" : "border-white/10 bg-zinc-900/60"}">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0"><p class="truncate font-semibold">${esc(s.name)}</p><p class="text-xs text-zinc-400">${s.rubro}</p></div>
+              ${openBadge(open)}
+            </div>
+            <div class="mt-2 flex items-center gap-2 text-xs">${stars(a)}<span class="text-zinc-400">${a ? a.toFixed(1).replace(".", ",") : "Nuevo"}</span></div>
+            <div class="mt-3 flex flex-wrap justify-between gap-x-3 gap-y-1 text-xs text-zinc-400">
+              <span class="font-semibold text-zinc-200">${km(s.km)}</span>
+              <span>A pie ${t.walk} min · En auto ${t.car} min</span>
+            </div>
+            <p class="mt-2 truncate text-xs text-zinc-500">${esc(s.address)}</p>
+          </button>`;
+      }).join("") : `<div class="rounded-2xl border border-dashed border-white/10 p-6 text-center text-sm text-zinc-400">No hay comercios con esa búsqueda dentro de ${S.radius} km. Probá ampliar el radio.</div>`;
+    }
+
+    function renderMap() {
+      const list = filteredShops();
+      const scale = Math.max(S.radius, 3) * 1.15;
+      const R = S.radius / scale * 44;
+      $("#map-caption").textContent = `Radio de ${S.radius} km desde ${ZONES[S.zone]}`;
+      const pins = list.map(s => {
+        const d = s.km / scale * 44, rad = s.angle * Math.PI / 180;
+        const x = 50 + Math.cos(rad) * d, y = 50 + Math.sin(rad) * d * 1.6;
+        const sel = S.shopId === s.id;
+        return `
+          <button type="button" data-pin="${s.id}" aria-label="${esc(s.name)}" style="left:${x}%;top:${y}%"
+            class="group absolute -translate-x-1/2 -translate-y-1/2 transition-transform duration-200 hover:scale-110 focus:outline-none">
+            <span class="grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br from-cyan-400 via-violet-500 to-emerald-400 text-xs font-black text-white shadow-lg ${sel ? "pulse-ring ring-4 ring-white/40" : ""}">${initials(s.name)}</span>
+            <span class="pointer-events-none absolute left-1/2 top-full mt-1.5 -translate-x-1/2 whitespace-nowrap rounded-lg bg-zinc-900/95 px-2 py-1 text-[11px] text-zinc-100 ring-1 ring-white/10 transition-opacity ${sel ? "opacity-100" : "opacity-0 group-hover:opacity-100"}">${esc(s.name)}</span>
+          </button>`;
+      }).join("");
+      $("#map").innerHTML = `
+        <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-400/50 bg-cyan-400/5 shadow-[0_0_60px_-10px_rgba(34,211,238,.45)]" style="width:${2 * R}%;height:${2 * R * 1.6}%"></div>
+        <div class="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center">
+          <span class="h-4 w-4 rounded-full bg-white shadow-[0_0_0_6px_rgba(255,255,255,.12)]"></span>
+          <span class="mt-1 text-[11px] text-zinc-300">Vos</span>
+        </div>
+        ${pins}`;
+    }
+
+    function productCard(s, p, i) {
+      const reserved = S.res.filter(r => r.shop === s.id && r.product === p.name && r.status === "pendiente").reduce((a, b) => a + b.qty, 0);
+      const initial = p.name.charAt(0).toUpperCase();
+      const img = p.img ? `<img src="${p.img}" alt="${esc(p.name)}" loading="lazy" class="h-full w-full object-cover transition duration-700 group-hover:scale-110" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">` : "";
+      const fallback = `<div style="display:${p.img ? "none" : "flex"}" class="absolute inset-0 items-center justify-center bg-gradient-to-br from-cyan-500/30 via-violet-600/30 to-emerald-500/30 text-5xl font-black text-white/80">${initial}</div>`;
+      return `
+        <article class="group card-hover fade-in overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/60">
+          <div class="relative aspect-[4/3] overflow-hidden bg-zinc-800">
+            ${img}${fallback}
+            <span class="absolute left-3 top-3">${stockBadge(p.stock)}</span>
+          </div>
+          <div class="p-4">
+            <h3 class="font-semibold leading-snug">${esc(p.name)}</h3>
+            <p class="mt-1 line-clamp-2 min-h-[2.5rem] text-xs text-zinc-400">${esc(p.desc || "")}</p>
+            <div class="mt-3 flex items-end justify-between gap-2">
+              <span class="grad-text text-xl font-black">${money(p.price)}</span>
+              ${reserved ? `<span class="text-[11px] text-cyan-300">${reserved} reservado${reserved > 1 ? "s" : ""}</span>` : ""}
+            </div>
+            <button type="button" data-reserve="${s.id}:${i}" ${p.stock <= 0 ? "disabled" : ""}
+              class="btn-neon mt-4 w-full rounded-xl px-4 py-2.5 text-sm font-semibold text-white">
+              ${p.stock <= 0 ? "Sin stock" : "Reservar (Click & Collect)"}
+            </button>
+          </div>
+        </article>`;
+    }
+
+    function renderCatalog() {
+      const wrap = $("#catalog-wrap");
+      const s = shopById(S.shopId);
+      if (!s) {
+        wrap.innerHTML = `
+          <div class="flex flex-col items-center justify-center py-14 text-center">
+            <div class="grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-cyan-400 to-violet-500 text-2xl font-black text-white shadow-lg shadow-violet-900/40">?</div>
+            <h3 class="mt-4 text-lg font-semibold">Elegí un comercio</h3>
+            <p class="mt-1 max-w-sm text-sm text-zinc-400">Tocá un pin del mapa o una tarjeta de la lista para ver su catálogo, precios y stock.</p>
+          </div>`;
+        return;
+      }
+      const a = avg(s.id), t = travel(s.km), open = isOpen(s);
+      wrap.innerHTML = `
+        <div class="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <div class="flex flex-wrap items-center gap-2">
+              <h2 class="text-xl font-bold">${esc(s.name)}</h2>
+              ${openBadge(open)}
+            </div>
+            <p class="mt-1 text-sm text-zinc-400">${esc(s.address)} · Horario ${s.open}:00 a ${s.close}:00</p>
+            <div class="mt-2 flex flex-wrap items-center gap-3 text-xs text-zinc-400">
+              ${stars(a)}<span>${a ? a.toFixed(1).replace(".", ",") : "Sin reseñas"}</span>
+              <span>·</span><span>${km(s.km)} · a pie ${t.walk} min · en auto ${t.car} min</span>
+            </div>
+          </div>
+          <div class="w-full sm:w-auto">
+            <label for="slot" class="text-xs text-zinc-400">Horario de retiro</label>
+            <select id="slot" class="mt-1 w-full rounded-xl border border-white/10 bg-zinc-900/80 px-3 py-2.5 text-sm text-zinc-100 focus:border-cyan-400 focus:outline-none sm:w-60">
+              ${SLOTS.map(x => `<option ${x === S.slot ? "selected" : ""}>${x}</option>`).join("")}
+            </select>
+          </div>
+        </div>
+        <div class="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          ${s.products.map((p, i) => productCard(s, p, i)).join("")}
+        </div>`;
+    }
+
+    function renderReservas() {
+      const el = $("#reservas-content");
+      if (!S.res.length) {
+        el.innerHTML = `
+          <div class="glass fade-in mx-auto max-w-xl rounded-3xl p-10 text-center">
+            <div class="mx-auto grid h-20 w-20 place-items-center rounded-3xl bg-gradient-to-br from-cyan-400 via-violet-500 to-emerald-400 shadow-xl shadow-violet-900/40">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
+            </div>
+            <h2 class="mt-6 text-xl font-bold">Todavía no tenés reservas</h2>
+            <p class="mt-2 text-sm text-zinc-400">Buscá un producto, elegí un comercio cercano y tocá <span class="text-cyan-300">Reservar</span>. Acá vas a ver todo lo que tengas para retirar.</p>
+            <button type="button" data-go="buscar" class="btn-neon mt-6 rounded-xl px-5 py-2.5 text-sm font-semibold text-white">Ir a buscar</button>
+          </div>`;
+        return;
+      }
+      const pending = S.res.filter(r => r.status === "pendiente" || r.status === "aceptada");
+      const total = pending.reduce((a, r) => a + (r.price == null ? 0 : r.price * r.qty), 0);
+      el.innerHTML = `
+        <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h2 class="text-2xl font-bold">Mis reservas</h2>
+            <p class="text-sm text-zinc-400">Retirás en el local en el horario elegido.</p>
+          </div>
+          <div class="glass rounded-2xl px-5 py-3 text-right">
+            <p class="text-xs text-zinc-400">Total pendiente de retiro</p>
+            <p class="grad-text text-xl font-black">${money(total)}</p>
+          </div>
+        </div>
+        <div class="grid gap-4 md:grid-cols-2">${S.res.map(resCard).join("")}</div>`;
+    }
+
+    function resCard(r) {
+      const s = shopById(r.shop);
+      const st = STATUS[r.status];
+      const tot = r.price == null ? null : r.price * r.qty;
+      const note = r.status === "aceptada" ? "Confirmada por el comercio." : r.status === "rechazada" ? "No se cobró nada." : "";
+      return `
+        <article class="card-hover fade-in relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/60 p-5">
+          <div class="absolute inset-y-0 left-0 w-1 bg-gradient-to-b ${st.bar}"></div>
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <p class="text-xs text-zinc-400">${esc(s.name)}</p>
+              <h3 class="truncate font-semibold">${esc(r.product)} × ${r.qty}</h3>
+            </div>
+            <span class="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ${st.chip}">${st.label}</span>
+          </div>
+          <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
+            <div><p class="text-xs text-zinc-500">Horario de retiro</p><p class="font-medium">${esc(r.pickup)}</p></div>
+            <div class="text-right"><p class="text-xs text-zinc-500">Precio total</p><p class="font-bold">${money(tot)}</p></div>
+          </div>
+          <p class="mt-3 text-xs text-zinc-500">${esc(s.address)}</p>
+          ${note ? `<p class="mt-2 text-xs text-zinc-400">${note}</p>` : ""}
+          ${r.status === "pendiente" ? `<button type="button" data-cancel="${r.id}" class="mt-4 w-full rounded-xl border border-white/10 py-2 text-sm text-zinc-300 transition hover:border-rose-400/50 hover:text-rose-300">Cancelar reserva</button>` : ""}
+        </article>`;
+    }
+
+    function metric(label, value, grad) {
+      return `
+        <div class="card-hover relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/60 p-5">
+          <div class="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-gradient-to-br ${grad} opacity-30 blur-xl"></div>
+          <p class="text-xs text-zinc-400">${label}</p>
+          <p class="mt-2 bg-gradient-to-r ${grad} bg-clip-text text-3xl font-black text-transparent">${value}</p>
+        </div>`;
+    }
+
+    function incomingCard(r) {
+      const st = STATUS[r.status];
+      const tot = r.price == null ? null : r.price * r.qty;
+      let actions = "";
+      if (r.status === "pendiente") {
+        actions = `
+          <div class="mt-4 flex gap-2">
+            <button type="button" data-accept="${r.id}" class="btn-neon flex-1 rounded-xl py-2 text-sm font-semibold text-white">Aceptar</button>
+            <button type="button" data-reject="${r.id}" class="flex-1 rounded-xl border border-rose-400/40 py-2 text-sm font-semibold text-rose-300 transition hover:bg-rose-500/10">Rechazar</button>
+          </div>`;
+      } else if (r.status === "aceptada") {
+        actions = `<button type="button" data-deliver="${r.id}" class="mt-4 w-full rounded-xl border border-emerald-400/40 py-2 text-sm font-semibold text-emerald-300 transition hover:bg-emerald-500/10">Marcar como entregada</button>`;
+      }
+      return `
+        <article class="rounded-2xl border border-white/10 bg-zinc-950/50 p-4">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <h4 class="truncate font-semibold">${esc(r.product)} × ${r.qty}</h4>
+              <p class="text-xs text-zinc-400">Cliente: ${esc(r.who)} · Retira: ${esc(r.pickup)}</p>
+            </div>
+            <span class="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ${st.chip}">${st.label}</span>
+          </div>
+          <div class="mt-3 flex items-center justify-between text-sm">
+            <span class="text-zinc-400">Total</span><span class="font-bold">${money(tot)}</span>
+          </div>
+          ${actions}
+        </article>`;
+    }
+
+    function renderDashboard() {
+      const s = shopById(MERCHANT_ID);
+      const inc = S.res.filter(r => r.shop === MERCHANT_ID);
+      const delivered = inc.filter(r => r.status === "entregada").length;
+      const toAnswer = inc.filter(r => r.status === "pendiente").length;
+      const a = avg(s.id);
+      const reviews = REVIEWS.filter(x => x.shop === MERCHANT_ID);
+      $("#dashboard-content").innerHTML = `
+        <div class="rounded-2xl border border-amber-400/40 bg-amber-400/10 p-4 text-sm text-amber-200 shadow-[0_0_30px_-12px_rgba(251,191,36,.6)]">
+          <p><span class="font-bold">Importante:</span> en las reservas con pago online, el monto queda retenido y se cobra al aceptar.</p>
+        </div>
+
+        <div class="mt-6 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 class="text-2xl font-bold">Panel de ${esc(s.name)}</h2>
+            <p class="text-sm text-zinc-400">${s.products.length} productos cargados · Horario ${s.open}:00 a ${s.close}:00</p>
+          </div>
+          <button type="button" data-upload class="btn-neon rounded-xl px-5 py-3 text-sm font-semibold text-white">+ Cargar o actualizar lista de precios / productos</button>
+        </div>
+
+        <div class="mt-6 grid gap-4 sm:grid-cols-3">
+          ${metric("Vistas del local", s.views, "from-cyan-400 to-sky-500")}
+          ${metric("Reservas recibidas", inc.length, "from-violet-400 to-fuchsia-500")}
+          ${metric("Entregas realizadas", delivered, "from-emerald-400 to-teal-500")}
+        </div>
+
+        <div class="mt-6 grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+          <section class="glass rounded-3xl p-5">
+            <div class="flex items-center justify-between">
+              <h3 class="font-semibold">Reservas entrantes</h3>
+              <span class="text-xs text-zinc-400">${toAnswer} por responder</span>
+            </div>
+            <div class="mt-4 space-y-3">
+              ${inc.length ? inc.map(incomingCard).join("") : `<div class="py-10 text-center text-sm text-zinc-400">Todavía no llegaron reservas. Aparecen acá en cuanto un cliente reserve.</div>`}
+            </div>
+          </section>
+
+          <section class="glass rounded-3xl p-5">
+            <div class="flex items-center justify-between">
+              <h3 class="font-semibold">Reseñas de tus clientes</h3>
+              <span class="flex items-center gap-2 text-sm">${stars(a)}<span class="text-zinc-300">${a ? a.toFixed(1).replace(".", ",") : "-"}</span></span>
+            </div>
+            <div class="mt-4 space-y-3">
+              ${reviews.map(r => `
+                <article class="rounded-2xl border border-white/10 bg-zinc-950/50 p-4">
+                  <div class="flex items-center justify-between gap-2">
+                    ${stars(r.stars)}<span class="text-xs text-zinc-500">${r.date}</span>
+                  </div>
+                  <p class="mt-2 text-sm text-zinc-200">${esc(r.text)}</p>
+                  <div class="mt-3 flex items-center gap-2">
+                    <span class="grid h-7 w-7 place-items-center rounded-full bg-gradient-to-br from-cyan-400 to-violet-500 text-[11px] font-bold text-white">${esc(r.who.charAt(0))}</span>
+                    <span class="text-xs text-zinc-400">${esc(r.who)}</span>
+                  </div>
+                </article>`).join("")}
+            </div>
+          </section>
+        </div>`;
+    }
+
+    function openModal(html) {
+      $("#modal-box").innerHTML = html;
+      $("#modal").classList.remove("hidden");
+      $("#modal").classList.add("flex");
+    }
+
+    function closeModal() {
+      $("#modal").classList.add("hidden");
+      $("#modal").classList.remove("flex");
+    }
+
+    function openUpload() {
+      openModal(`
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <h3 class="text-lg font-bold">Cargar o actualizar lista de precios</h3>
+            <p class="mt-1 text-sm text-zinc-400">Una línea por producto con el formato <span class="text-cyan-300">Producto; precio; stock</span>. Si el producto ya existe, se actualiza. Dejá el precio vacío para mostrar "A consultar".</p>
+          </div>
+          <button type="button" data-close aria-label="Cerrar" class="rounded-lg p-1 text-zinc-400 hover:text-white">✕</button>
+        </div>
+        <textarea id="upload-text" rows="8" placeholder="Hilo de coser blanco; 1200; 10"
+          class="mt-4 w-full rounded-2xl border border-white/10 bg-zinc-950/80 p-4 font-mono text-sm text-zinc-100 placeholder-zinc-600 focus:border-cyan-400 focus:outline-none"></textarea>
+        <p class="mt-2 text-xs text-zinc-500">Ejemplo: Botones 20 mm; 900; 4</p>
+        <p id="upload-err" class="mt-2 min-h-[1.25rem] text-sm text-rose-300"></p>
+        <div class="mt-3 flex justify-end gap-2">
+          <button type="button" data-close class="rounded-xl border border-white/10 px-4 py-2 text-sm text-zinc-300 hover:bg-white/5">Cancelar</button>
+          <button type="button" data-save-upload class="btn-neon rounded-xl px-5 py-2 text-sm font-semibold text-white">Guardar lista</button>
+        </div>`);
+      setTimeout(() => $("#upload-text").focus(), 50);
+    }
+
+    function saveUpload() {
+      const lines = $("#upload-text").value.split("\n").map(l => l.trim()).filter(Boolean);
+      const s = shopById(MERCHANT_ID);
+      let n = 0;
+      lines.forEach(line => {
+        const parts = line.split(";").map(x => x.trim());
+        const name = parts[0];
+        if (!name) return;
+        const price = parsePrice(parts[1]);
+        const stock = Math.max(0, parseInt(parts[2], 10) || 0);
+        const existing = s.products.find(p => norm(p.name) === norm(name));
+        if (existing) {
+          existing.price = price;
+          existing.stock = stock;
+        } else {
+          s.products.push({ name, price, stock, img: null, desc: "Cargado desde la lista de precios." });
+        }
+        n++;
+      });
+      if (!n) {
+        $("#upload-err").textContent = "Escribí al menos una línea con el formato Producto; precio; stock.";
+        return;
+      }
+      closeModal();
+      toast(`${n} producto(s) guardados en tu catálogo.`);
+      renderAll();
+    }
+
+    let toastTimer;
+    function toast(msg) {
+      $("#toast-text").textContent = msg;
+      const t = $("#toast");
+      t.classList.remove("opacity-0", "translate-y-4");
+      t.classList.add("opacity-100");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        t.classList.add("opacity-0", "translate-y-4");
+        t.classList.remove("opacity-100");
+      }, 2600);
+    }
+
+    function restoreStock(r) {
+      const p = shopById(r.shop).products.find(x => x.name === r.product);
+      if (p) p.stock += r.qty;
+    }
+
+    function reserve(shopId, idx) {
+      const s = shopById(shopId), p = s.products[idx];
+      if (!p || p.stock <= 0) return;
+      p.stock--;
+      const existing = S.res.find(r => r.shop === shopId && r.product === p.name && r.status === "pendiente");
+      if (existing) {
+        existing.qty++;
+      } else {
+        S.res.unshift({ id: S.nextId++, shop: shopId, product: p.name, price: p.price, qty: 1, pickup: S.slot, status: "pendiente", who: CLIENT });
+      }
+      toast(`Reservaste ${p.name} en ${s.name}. Lo encontrás en Mis reservas.`);
+      renderAll();
+    }
+
+    function cancelRes(id) {
+      const r = S.res.find(x => x.id === id);
+      if (!r) return;
+      restoreStock(r);
+      S.res = S.res.filter(x => x.id !== id);
+      toast("Reserva cancelada. El stock volvió a estar disponible.");
+      renderAll();
+    }
+
+    function changeRes(id, fn) {
+      const r = S.res.find(x => x.id === id);
+      if (!r) return;
+      fn(r);
+      renderAll();
+    }
+
+    function switchTab(tab) {
+      S.tab = tab;
+      ["buscar", "reservas", "comerciante"].forEach(t => $("#view-" + t).classList.toggle("hidden", t !== tab));
+      $$("[data-tab]").forEach(b => {
+        const on = b.dataset.tab === tab;
+        b.classList.toggle("bg-gradient-to-r", on);
+        b.classList.toggle("from-cyan-500/20", on);
+        b.classList.toggle("to-violet-500/20", on);
+        b.classList.toggle("text-white", on);
+        b.classList.toggle("ring-1", on);
+        b.classList.toggle("ring-cyan-400/40", on);
+        b.classList.toggle("text-zinc-400", !on);
+      });
+      renderAll();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function updateBadge() {
+      const n = S.res.filter(r => r.status === "pendiente" || r.status === "aceptada").length;
+      const b = $("#reservas-badge");
+      b.textContent = n;
+      b.classList.toggle("hidden", n === 0);
+    }
+
+    function renderAll() {
+      updateBadge();
+      renderShopList();
+      renderMap();
+      renderCatalog();
+      renderReservas();
+      renderDashboard();
+    }
+
+    document.addEventListener("click", e => {
+      const t = e.target.closest("[data-tab],[data-go],[data-shop],[data-pin],[data-reserve],[data-cancel],[data-accept],[data-reject],[data-deliver],[data-upload],[data-save-upload],[data-close]");
+      if (!t) return;
+      const d = t.dataset;
+      if (d.tab) return switchTab(d.tab);
+      if (d.go) return switchTab(d.go);
+      if (d.shop !== undefined || d.pin !== undefined) {
+        const id = Number(d.shop ?? d.pin);
+        if (S.shopId !== id) shopById(id).views++;
+        S.shopId = S.shopId === id ? null : id;
+        renderShopList();
+        renderMap();
+        renderCatalog();
+        return;
+      }
+      if (d.reserve) {
+        const [sid, idx] = d.reserve.split(":").map(Number);
+        return reserve(sid, idx);
+      }
+      if (d.cancel) return cancelRes(Number(d.cancel));
+      if (d.accept) return changeRes(Number(d.accept), r => { r.status = "aceptada"; toast("Reserva aceptada. El monto se cobra al cliente."); });
+      if (d.reject) return changeRes(Number(d.reject), r => { restoreStock(r); r.status = "rechazada"; toast("Reserva rechazada. El stock volvió a estar disponible."); });
+      if (d.deliver) return changeRes(Number(d.deliver), r => { r.status = "entregada"; toast("Entrega registrada."); });
+      if (d.upload !== undefined) return openUpload();
+      if (d.saveUpload !== undefined) return saveUpload();
+      if (d.close !== undefined) return closeModal();
+    });
+
+    document.addEventListener("change", e => {
+      if (e.target.id === "slot") S.slot = e.target.value;
+      if (e.target.id === "zone") {
+        S.zone = e.target.value;
+        S.shopId = null;
+        renderAll();
+      }
+    });
+
+    $("#search").addEventListener("input", e => {
+      S.query = e.target.value;
+      renderShopList();
+      renderMap();
+    });
+
+    $("#radius").addEventListener("input", e => {
+      S.radius = Number(e.target.value);
+      $("#radius-value").textContent = S.radius + " km";
+      renderShopList();
+      renderMap();
+    });
+
+    $("#modal").addEventListener("click", e => {
+      if (e.target.id === "modal") closeModal();
+    });
+
+    document.addEventListener("keydown", e => {
+      if (e.key === "Escape") closeModal();
+    });
+
+    switchTab("buscar");
+  </script>
+</body>
+</html>
