@@ -32,7 +32,7 @@ export default function PaginaReservas({ searchParams }: PageProps<"/reservas">)
 async function Reservas({ searchParams }: Pick<PageProps<"/reservas">, "searchParams">) {
   const usuario = await usuarioActual();
   if (!usuario) redirect("/ingresar?siguiente=/reservas");
-  const { nueva } = await searchParams;
+  const { nueva, error } = await searchParams;
 
   const supabase = await supabaseServidor();
   const { data: reservas } = await supabase
@@ -49,6 +49,11 @@ async function Reservas({ searchParams }: Pick<PageProps<"/reservas">, "searchPa
 
   return (
     <>
+      {typeof error === "string" ? (
+        <p role="alert" className="mb-4 rounded-2xl border border-naranja bg-naranja/10 p-4 text-sm">
+          {error}
+        </p>
+      ) : null}
       {nueva ? (
         <p className="mb-4 rounded-2xl border border-naranja bg-naranja/10 p-4 text-sm">
           <span className="font-semibold">¡Listo, reservaste!</span> El comercio la tiene que confirmar; vas a ver el estado acá.

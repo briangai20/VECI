@@ -1,20 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { plata } from "@/lib/formato";
+import { disponibilidad, plata } from "@/lib/formato";
 import { usuarioActual } from "@/lib/sesion";
 import { supabaseServidor } from "@/lib/supabase/servidor";
 import type { Enum } from "@/lib/supabase/tipos";
-import { cambiarReserva } from "./acciones";
+import { cambiarReserva, ofrecerAlternativas } from "./acciones";
 import { FormComercio } from "./form-comercio";
 import { ProductoFila } from "./producto-fila";
 
 export const metadata: Metadata = { title: "Panel del comerciante" };
 
-export default function PaginaComerciante() {
+export default function PaginaComerciante({ searchParams }: PageProps<"/comerciante">) {
   return (
     <Suspense fallback={<div className="tarjeta h-96 animate-pulse rounded-3xl" />}>
-      <Panel />
+      <Panel searchParams={searchParams} />
     </Suspense>
   );
 }
@@ -29,8 +29,9 @@ const ESTADOS: Record<Enum<"estado_reserva">, string> = {
   vencida: "Vencida",
 };
 
-async function Panel() {
+async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchParams">) {
   const usuario = await usuarioActual();
+  const { error: errorAccion } = await searchParams;
 
   if (!usuario) {
     return (
@@ -82,7 +83,7 @@ async function Panel() {
     supabase.from("productos").select("*").eq("comercio_id", comercio.id).order("nombre"),
     supabase
       .from("reservas")
-      .select("*, comprador:perfiles!reservas_comprador_id_fkey(nombre, telefono)")
+      .select("*, comprador:perfiles!reservas_comprador_id_fkey(nombre, telefono), alternativas:reserva_alternativas(producto:productos(nombre))")
       .eq("comercio_id", comercio.id)
       .order("creada_en", { ascending: false })
       .limit(30),
@@ -90,8 +91,22 @@ async function Panel() {
   ]);
   const s = stats?.[0];
   const ahora = new Date();
-  const abiertas = (reservas ?? []).filter((r) => r.estado === "pendiente" || r.estado === "aceptada");
-  const cerradas = (reservas ?? []).filter((r) => !(r.estado === "pendiente" || r.estado === "aceptada"));
+  const enCurso = (e: string) => e === "pendiente" || e === "alternativa" || e === "aceptada";
+  const abiertas = (reservas ?? []).filter((r) => enCurso(r.estado));
+  const cerradas = (reservas ?? []).filter((r) => !enCurso(r.estado));
+
+  // Qué se le puede ofrecer en lugar de lo reservado: productos publicados,
+  // con stock para esa cantidad, primero los del mismo grupo de variantes.
+  const opciones = (productoId: number | null, cantidad: number) => {
+    const original = (productos ?? []).find((p) => p.id === productoId);
+    return (productos ?? [])
+      .filter((p) => p.activo && p.id !== productoId)
+      .filter((p) => {
+        const d = disponibilidad(p, ahora);
+        return d.sePuede && (p.modo !== "exacto" || (p.stock ?? 0) >= cantidad);
+      })
+      .sort((a, b) => Number(b.grupo != null && b.grupo === original?.grupo) - Number(a.grupo != null && a.grupo === original?.grupo));
+  };
 
   return (
     <div className="space-y-6">
@@ -132,6 +147,11 @@ async function Panel() {
 
       <section id="reservas" className="tarjeta rounded-3xl p-6">
         <h2 className="text-lg font-semibold">Reservas</h2>
+        {typeof errorAccion === "string" ? (
+          <p role="alert" className="mt-3 rounded-xl border border-naranja bg-naranja/15 p-3 text-sm">
+            {errorAccion}
+          </p>
+        ) : null}
         {abiertas.length === 0 ? (
           <p className="mt-3 text-sm text-white/80">No tenés reservas para responder. Aparecen acá en cuanto un vecino reserve.</p>
         ) : (
@@ -150,6 +170,11 @@ async function Panel() {
                   <span className="rounded-full border border-white/40 px-2.5 py-0.5 text-[11px] font-semibold">{ESTADOS[r.estado]}</span>
                 </div>
                 <p className="mt-2 text-sm">Total: {plata(r.precio_unitario == null ? null : r.precio_unitario * r.cantidad)}</p>
+                {r.estado === "alternativa" ? (
+                  <p className="mt-2 text-xs text-white/85">
+                    Le ofreciste: {r.alternativas.map((a) => a.producto?.nombre).filter(Boolean).join(", ")}. Si no elige, podés rechazarla.
+                  </p>
+                ) : null}
                 <form action={cambiarReserva} className="mt-3 flex gap-2">
                   <input type="hidden" name="reserva" value={r.id} />
                   {r.estado === "pendiente" ? (
@@ -161,12 +186,39 @@ async function Panel() {
                         Rechazar
                       </button>
                     </>
+                  ) : r.estado === "alternativa" ? (
+                    <button name="accion" value="rechazar" className="flex-1 rounded-xl border border-white/40 py-2 text-sm hover:bg-white/10">
+                      Rechazar
+                    </button>
                   ) : (
                     <button name="accion" value="retirada" className="flex-1 rounded-xl border border-white/60 py-2 text-sm font-semibold hover:bg-white/10">
                       Ya lo retiró
                     </button>
                   )}
                 </form>
+                {r.estado === "pendiente" ? (
+                  <details className="mt-3 text-sm">
+                    <summary className="cursor-pointer text-white/85">No lo tengo: ofrecer otra cosa</summary>
+                    {opciones(r.producto_id, r.cantidad).length ? (
+                      <form action={ofrecerAlternativas} className="mt-2 space-y-2">
+                        <input type="hidden" name="reserva" value={r.id} />
+                        <p className="text-xs text-white/75">Elegí uno o más productos. El cliente elige cuál le sirve o cancela sin costo.</p>
+                        <div className="max-h-48 space-y-1 overflow-y-auto">
+                          {opciones(r.producto_id, r.cantidad).map((p) => (
+                            <label key={p.id} className="flex items-center gap-2 rounded-lg border border-white/15 px-3 py-2 text-xs">
+                              <input type="checkbox" name="productos" value={p.id} className="h-4 w-4 accent-white" />
+                              <span className="flex-1">{p.nombre}</span>
+                              <span className="text-white/75">{plata(p.precio)}</span>
+                            </label>
+                          ))}
+                        </div>
+                        <button className="boton w-full rounded-xl py-2 text-sm font-semibold">Ofrecer al cliente</button>
+                      </form>
+                    ) : (
+                      <p className="mt-2 text-xs text-white/75">No tenés otros productos con stock para ofrecer. Podés rechazar la reserva.</p>
+                    )}
+                  </details>
+                ) : null}
               </article>
             ))}
           </div>

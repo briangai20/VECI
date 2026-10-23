@@ -93,13 +93,35 @@ export async function confirmarStock(d: FormData) {
   refresh();
 }
 
+// Si la base rechaza la acción (por ejemplo, ya no hay stock), volvemos al
+// panel con el motivo. Los mensajes "P0001" los escribe la base en castellano.
+function volverConError(error: { message: string; code?: string } | null) {
+  if (!error) return;
+  const motivo = error.code === "P0001" ? error.message : "No pudimos guardar el cambio. Probá de nuevo.";
+  redirect(`/comerciante?error=${encodeURIComponent(motivo)}#reservas`);
+}
+
 export async function cambiarReserva(d: FormData) {
   const supabase = await comerciante();
   const reserva = Number(texto(d, "reserva"));
   const accion = texto(d, "accion");
   if (!reserva) return;
-  if (accion === "aceptar") await supabase.rpc("aceptar_reserva", { p_reserva: reserva });
-  if (accion === "rechazar") await supabase.rpc("rechazar_reserva", { p_reserva: reserva });
-  if (accion === "retirada") await supabase.rpc("marcar_retirada", { p_reserva: reserva });
-  refresh();
+  const rpc =
+    accion === "aceptar" ? "aceptar_reserva" : accion === "rechazar" ? "rechazar_reserva" : accion === "retirada" ? "marcar_retirada" : null;
+  if (!rpc) return;
+  const { error } = await supabase.rpc(rpc, { p_reserva: reserva });
+  volverConError(error);
+  redirect("/comerciante#reservas"); // vuelve sin el cartel de error, si había uno
+}
+
+// "No lo tengo": le ofrece al cliente otros productos del catálogo.
+export async function ofrecerAlternativas(d: FormData) {
+  const supabase = await comerciante();
+  const reserva = Number(texto(d, "reserva"));
+  const productos = d.getAll("productos").map(Number).filter((n) => Number.isInteger(n) && n > 0);
+  if (!reserva) return;
+  if (!productos.length) redirect(`/comerciante?error=${encodeURIComponent("Elegí al menos un producto para ofrecer.")}#reservas`);
+  const { error } = await supabase.rpc("ofrecer_alternativas", { p_reserva: reserva, p_productos: productos });
+  volverConError(error);
+  redirect("/comerciante#reservas"); // vuelve sin el cartel de error, si había uno
 }

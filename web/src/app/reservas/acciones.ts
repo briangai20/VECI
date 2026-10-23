@@ -47,8 +47,9 @@ export async function cancelar(d: FormData) {
 
 export async function elegirAlternativa(d: FormData) {
   const supabase = await conSesion("/reservas");
-  await supabase.rpc("elegir_alternativa", { p_reserva: numero(d, "reserva"), p_producto: numero(d, "producto") });
-  refresh();
+  const { error } = await supabase.rpc("elegir_alternativa", { p_reserva: numero(d, "reserva"), p_producto: numero(d, "producto") });
+  if (error) redirect(`/reservas?error=${encodeURIComponent(mensaje(error))}`);
+  redirect("/reservas");
 }
 
 export async function dejarResena(d: FormData) {
