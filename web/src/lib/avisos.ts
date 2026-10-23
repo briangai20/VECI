@@ -94,7 +94,7 @@ export async function avisarReserva(reservaId: number, evento: Evento) {
     const mensajes: Record<Evento, [string, string, { texto: string; url: string }]> = {
       nueva: [
         `Nueva reserva: ${r.producto_nombre}`,
-        `<p>${cliente} reservó <b>${producto}</b> (${total}) para retirar <b>${esc(r.retiro)}</b>.</p><p>Tenés <b>2 horas</b> para aceptarla, rechazarla u ofrecer otra cosa. Si no, vence sola.</p>`,
+        `<p>${cliente} reservó <b>${producto}</b> (${total}) para retirar <b>${esc(r.retiro)}</b>.</p><p>Tenés <b>2 horas de tu horario de atención</b> para aceptarla, rechazarla u ofrecer otra cosa (si llegó con el local cerrado, empiezan a contar cuando abrís). Si no, vence sola.</p>`,
         panel,
       ],
       cancelada: [`${r.comprador?.nombre || "El cliente"} canceló una reserva`, `<p>${cliente} canceló <b>${producto}</b>. Si ya la habías aceptado, el stock volvió a tu catálogo.</p>`, panel],
@@ -115,7 +115,7 @@ export async function avisarReserva(reservaId: number, evento: Evento) {
       ],
       alternativa: [
         `${r.comercio.nombre} te ofrece otra opción`,
-        `<p>${comercio} no tiene <b>${producto}</b>, pero te ofrece alternativas. Elegí una dentro de las 2 horas de tu reserva, o cancelala sin costo.</p>`,
+        `<p>${comercio} no tiene <b>${producto}</b>, pero te ofrece alternativas. Elegí una dentro de las 2 horas (en horario del local) desde esta oferta, o cancelala sin costo.</p>`,
         misReservas,
       ],
       retirada: [
