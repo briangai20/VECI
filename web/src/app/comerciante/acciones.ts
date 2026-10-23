@@ -2,6 +2,8 @@
 
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
+import { avisarReserva, type Evento } from "@/lib/avisos";
 import { usuarioActual } from "@/lib/sesion";
 import { supabaseServidor } from "@/lib/supabase/servidor";
 import type { Enum } from "@/lib/supabase/tipos";
@@ -111,6 +113,8 @@ export async function cambiarReserva(d: FormData) {
   if (!rpc) return;
   const { error } = await supabase.rpc(rpc, { p_reserva: reserva });
   volverConError(error);
+  const evento: Evento = accion === "aceptar" ? "aceptada" : accion === "rechazar" ? "rechazada" : "retirada";
+  after(() => avisarReserva(reserva, evento));
   redirect("/comerciante#reservas"); // vuelve sin el cartel de error, si había uno
 }
 
@@ -123,5 +127,6 @@ export async function ofrecerAlternativas(d: FormData) {
   if (!productos.length) redirect(`/comerciante?error=${encodeURIComponent("Elegí al menos un producto para ofrecer.")}#reservas`);
   const { error } = await supabase.rpc("ofrecer_alternativas", { p_reserva: reserva, p_productos: productos });
   volverConError(error);
+  after(() => avisarReserva(reserva, "alternativa"));
   redirect("/comerciante#reservas"); // vuelve sin el cartel de error, si había uno
 }

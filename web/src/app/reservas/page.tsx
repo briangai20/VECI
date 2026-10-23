@@ -14,11 +14,11 @@ export const metadata: Metadata = { title: "Mis reservas" };
 const ESTADOS: Record<Enum<"estado_reserva">, { texto: string; detalle: string }> = {
   pendiente: {
     texto: "Esperando al comercio",
-    detalle: "El comercio tiene que confirmar que lo tiene. Si no responde en 24 horas, la reserva vence sola y no se cobra nada.",
+    detalle: "El comercio tiene que confirmar que lo tiene. Si no responde en 2 horas, la reserva vence sola y no se cobra nada.",
   },
   alternativa: {
     texto: "Te ofrecen otra opción",
-    detalle: "El comercio no lo tiene, pero te ofrece estas alternativas. Elegí una dentro de las 24 horas de tu reserva.",
+    detalle: "El comercio no lo tiene, pero te ofrece estas alternativas. Elegí una dentro de las 2 horas de tu reserva.",
   },
   aceptada: { texto: "Confirmada: pasá a retirar", detalle: "Ya te lo separaron. Pagás al retirar." },
   retirada: { texto: "Retirada", detalle: "" },

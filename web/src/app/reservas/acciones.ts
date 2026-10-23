@@ -2,6 +2,8 @@
 
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
+import { avisarReserva } from "@/lib/avisos";
 import { usuarioActual } from "@/lib/sesion";
 import { supabaseServidor } from "@/lib/supabase/servidor";
 import type { TablesInsert } from "@/lib/supabase/tipos";
@@ -34,21 +36,26 @@ export async function reservar(_: EstadoReserva, d: FormData): Promise<EstadoRes
   // Precio, comercio y estado los completa la base (trigger preparar_reserva).
   // El comprador solo tiene permiso para mandar estas cuatro columnas.
   const fila = { producto_id: productoId, cantidad, retiro, medio_pago: "local" } as TablesInsert<"reservas">;
-  const { error } = await supabase.from("reservas").insert(fila);
+  const { data, error } = await supabase.from("reservas").insert(fila).select("id").single();
   if (error) return { error: mensaje(error) };
+  after(() => avisarReserva(data.id, "nueva"));
   redirect("/reservas?nueva=1");
 }
 
 export async function cancelar(d: FormData) {
   const supabase = await conSesion("/reservas");
-  await supabase.rpc("cancelar_reserva", { p_reserva: numero(d, "reserva") });
+  const reserva = numero(d, "reserva");
+  const { error } = await supabase.rpc("cancelar_reserva", { p_reserva: reserva });
+  if (!error) after(() => avisarReserva(reserva, "cancelada"));
   redirect("/reservas"); // sin "?nueva=1", para que no quede el cartel de "¡Listo, reservaste!"
 }
 
 export async function elegirAlternativa(d: FormData) {
   const supabase = await conSesion("/reservas");
-  const { error } = await supabase.rpc("elegir_alternativa", { p_reserva: numero(d, "reserva"), p_producto: numero(d, "producto") });
+  const reserva = numero(d, "reserva");
+  const { error } = await supabase.rpc("elegir_alternativa", { p_reserva: reserva, p_producto: numero(d, "producto") });
   if (error) redirect(`/reservas?error=${encodeURIComponent(mensaje(error))}`);
+  after(() => avisarReserva(reserva, "alternativa_elegida"));
   redirect("/reservas");
 }
 
