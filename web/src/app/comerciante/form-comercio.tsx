@@ -2,16 +2,19 @@
 
 import { startTransition, useActionState, useState } from "react";
 import { ElegirUbicacion } from "@/components/elegir-ubicacion";
+import { useListo } from "@/components/use-listo";
 import type { Tabla } from "@/lib/supabase/tipos";
 import { CENTROS, ZONA_INICIAL } from "@/lib/zonas";
+import type { Franja } from "@/lib/formato";
 import { guardarComercio, type Estado } from "./acciones";
+import { HorarioSemanal } from "./horario-semanal";
 
 const RUBROS = ["Ferretería", "Mercería", "Herrajes", "Librería", "Kiosco", "Almacén", "Farmacia", "Indumentaria", "Bazar", "Electricidad", "Pinturería"];
 
-export function FormComercio({ comercio, zonas }: { comercio: Tabla<"comercios"> | null; zonas: Tabla<"zonas">[] }) {
+export function FormComercio({ comercio, zonas, franjas }: { comercio: Tabla<"comercios"> | null; zonas: Tabla<"zonas">[]; franjas: Franja[] }) {
   const [estado, accion, guardando] = useActionState<Estado, FormData>(guardarComercio, {});
+  const listo = useListo();
   const [zona, setZona] = useState(comercio?.zona_id ?? ZONA_INICIAL);
-  const hhmm = (t: string | null) => (t ? t.slice(0, 5) : "");
 
   return (
     <form
@@ -51,20 +54,13 @@ export function FormComercio({ comercio, zonas }: { comercio: Tabla<"comercios">
           ))}
         </select>
       </label>
-      <div className="grid grid-cols-2 gap-3">
-        <label className="block text-xs">
-          Abre
-          <input name="abre" type="time" defaultValue={hhmm(comercio?.abre ?? null)} className="campo mt-1" />
-        </label>
-        <label className="block text-xs">
-          Cierra
-          <input name="cierra" type="time" defaultValue={hhmm(comercio?.cierra ?? null)} className="campo mt-1" />
-        </label>
-      </div>
       <label className="block text-xs">
         WhatsApp para consultas (opcional)
         <input name="whatsapp" type="tel" defaultValue={comercio?.whatsapp ?? ""} className="campo mt-1" placeholder="11 2345 6789" />
       </label>
+      <div className="md:col-span-2">
+        <HorarioSemanal franjas={franjas} />
+      </div>
       <div className="md:col-span-2">
         <ElegirUbicacion
           inicial={comercio?.lat != null && comercio?.lng != null ? { lat: comercio.lat, lng: comercio.lng } : null}
@@ -72,7 +68,7 @@ export function FormComercio({ comercio, zonas }: { comercio: Tabla<"comercios">
         />
       </div>
       <div className="flex flex-wrap items-center gap-3 md:col-span-2">
-        <button disabled={guardando} className="boton rounded-xl px-5 py-2.5 text-sm font-semibold">
+        <button disabled={guardando || !listo} className="boton rounded-xl px-5 py-2.5 text-sm font-semibold">
           {guardando ? "Guardando…" : comercio ? "Guardar cambios" : "Crear mi comercio"}
         </button>
         <p role="status" className="text-sm">

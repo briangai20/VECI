@@ -74,12 +74,12 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
       <div className="tarjeta rounded-3xl p-6">
         <h1 className="text-2xl font-bold">Hola{usuario.nombre ? `, ${usuario.nombre.split(" ")[0]}` : ""}. Cargá tu comercio</h1>
         <p className="mt-1 mb-6 text-sm text-white/85">Con estos datos te encuentran los vecinos. Después cargás los productos.</p>
-        <FormComercio comercio={null} zonas={zonas ?? []} />
+        <FormComercio comercio={null} zonas={zonas ?? []} franjas={[]} />
       </div>
     );
   }
 
-  const [{ data: productos }, { data: reservas }, { data: stats }] = await Promise.all([
+  const [{ data: productos }, { data: reservas }, { data: stats }, { data: franjas }] = await Promise.all([
     supabase.from("productos").select("*").eq("comercio_id", comercio.id).order("nombre"),
     supabase
       .from("reservas")
@@ -88,6 +88,7 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
       .order("creada_en", { ascending: false })
       .limit(30),
     supabase.rpc("estadisticas_comercio", { p_comercio: comercio.id }),
+    supabase.from("horarios").select("*").eq("comercio_id", comercio.id),
   ]);
   const s = stats?.[0];
   const ahora = new Date();
@@ -256,7 +257,7 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
 
       <section id="datos" className="tarjeta rounded-3xl p-6">
         <h2 className="mb-4 text-lg font-semibold">Datos del comercio</h2>
-        <FormComercio comercio={comercio} zonas={zonas ?? []} />
+        <FormComercio comercio={comercio} zonas={zonas ?? []} franjas={franjas ?? []} />
       </section>
     </div>
   );

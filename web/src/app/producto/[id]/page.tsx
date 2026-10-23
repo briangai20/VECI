@@ -37,12 +37,13 @@ async function Producto({ params }: Pick<Props, "params">) {
   if (!p) notFound();
   const c = p.comercio;
 
-  const [{ data: hermanos }, { data: otros }, { data: resenas }] = await Promise.all([
+  const [{ data: hermanos }, { data: otros }, { data: resenas }, { data: franjas }] = await Promise.all([
     p.grupo
       ? db.from("productos").select("id, nombre, precio").eq("comercio_id", c.id).eq("grupo", p.grupo).eq("activo", true).order("precio")
       : Promise.resolve({ data: [] }),
     db.from("productos").select("id, nombre, precio").eq("comercio_id", c.id).eq("activo", true).neq("id", p.id).limit(8),
     db.from("resenas").select("estrellas").eq("comercio_id", c.id),
+    db.from("horarios").select("*").eq("comercio_id", c.id),
   ]);
 
   const ahora = new Date();
@@ -83,7 +84,7 @@ async function Producto({ params }: Pick<Props, "params">) {
           {p.marca ? <p className="mt-1 text-sm text-white/80">Marca: {p.marca}</p> : null}
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <Stock d={d} />
-            <Abierto abierto={abiertoAhora(c.abre, c.cierra, ahora)} />
+            <Abierto abierto={abiertoAhora(franjas ?? [], ahora)} />
           </div>
           {d.requiereConfirmacion ? (
             <p className="mt-2 text-xs text-white/85">Este producto necesita confirmación del comercio antes de tu retiro.</p>
@@ -95,7 +96,7 @@ async function Producto({ params }: Pick<Props, "params">) {
               <Reserva
                 productoId={p.id}
                 maximo={p.modo === "exacto" && !d.requiereConfirmacion ? Math.min(Math.max(p.stock ?? 1, 1), 20) : 10}
-                franjas={franjasRetiro(c.abre, c.cierra, ahora)}
+                franjas={franjasRetiro(franjas ?? [], ahora)}
                 textoBoton={textoBoton}
                 precio={p.precio}
               />
@@ -119,7 +120,7 @@ async function Producto({ params }: Pick<Props, "params">) {
           <div className="mt-6 rounded-2xl border border-white/20 p-4">
             <p className="text-sm font-semibold">Retirás en el local</p>
             <p className="mt-1 text-xs text-white/80">{c.direccion}</p>
-            <p className="mt-1 text-xs text-white/80">Horario de atención: {horario(c.abre, c.cierra)}</p>
+            <p className="mt-1 text-xs text-white/80">Horario de atención: {horario(franjas ?? [])}</p>
           </div>
         </div>
       </div>
@@ -155,7 +156,7 @@ async function Producto({ params }: Pick<Props, "params">) {
           {p.marca ? fila("Marca", p.marca) : null}
           {fila("Disponibilidad", d.texto)}
           {fila("Precio", plata(p.precio))}
-          {fila("Horario de atención", horario(c.abre, c.cierra))}
+          {fila("Horario de atención", horario(franjas ?? []))}
           {fila("Valoración del comercio", prom != null ? `${nota(prom)} de 5` : "Sin reseñas")}
         </dl>
       </section>

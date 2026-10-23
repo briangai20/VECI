@@ -17,9 +17,7 @@ export type Database = {
     Tables: {
       comercios: {
         Row: {
-          abre: string | null
           aprobado: boolean
-          cierra: string | null
           creado_en: string
           direccion: string
           dueno_id: string
@@ -32,9 +30,7 @@ export type Database = {
           zona_id: string
         }
         Insert: {
-          abre?: string | null
           aprobado?: boolean
-          cierra?: string | null
           creado_en?: string
           direccion: string
           dueno_id?: string
@@ -47,9 +43,7 @@ export type Database = {
           zona_id: string
         }
         Update: {
-          abre?: string | null
           aprobado?: boolean
-          cierra?: string | null
           creado_en?: string
           direccion?: string
           dueno_id?: string
@@ -74,6 +68,35 @@ export type Database = {
             columns: ["zona_id"]
             isOneToOne: false
             referencedRelation: "zonas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      horarios: {
+        Row: {
+          abre: string
+          cierra: string
+          comercio_id: number
+          dia: number
+        }
+        Insert: {
+          abre: string
+          cierra: string
+          comercio_id: number
+          dia: number
+        }
+        Update: {
+          abre?: string
+          cierra?: string
+          comercio_id?: number
+          dia?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "horarios_comercio_id_fkey"
+            columns: ["comercio_id"]
+            isOneToOne: false
+            referencedRelation: "comercios"
             referencedColumns: ["id"]
           },
         ]
@@ -392,8 +415,6 @@ export type Database = {
           p_radio_km?: number
         }
         Returns: {
-          abre: string
-          cierra: string
           direccion: string
           distancia_km: number
           id: number

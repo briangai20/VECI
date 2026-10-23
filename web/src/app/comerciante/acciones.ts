@@ -29,6 +29,26 @@ async function comerciante() {
   return supabaseServidor();
 }
 
+// Lee el horario semanal del formulario (ver horario-semanal.tsx) y lo valida.
+function leerHorario(d: FormData): { franjas: { dia: number; abre: string; cierra: string }[] } | { error: string } {
+  const NOMBRES = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+  const hora = (k: string) => (/^\d{2}:\d{2}$/.test(texto(d, k)) ? texto(d, k) : "");
+  const franjas: { dia: number; abre: string; cierra: string }[] = [];
+  for (let dia = 0; dia < 7; dia++) {
+    if (d.get(`h${dia}on`) !== "on") continue;
+    const [a1, c1, a2, c2] = [hora(`h${dia}a1`), hora(`h${dia}c1`), hora(`h${dia}a2`), hora(`h${dia}c2`)];
+    if (!a1 || !c1 || a1 === c1) return { error: `Revisá el horario del ${NOMBRES[dia]}: poné a qué hora abrís y a qué hora cerrás.` };
+    franjas.push({ dia, abre: a1, cierra: c1 });
+    if (a2 || c2) {
+      if (!a2 || !c2 || a2 === c2) return { error: `Revisá el horario de la tarde del ${NOMBRES[dia]}.` };
+      if (c1 < a1 || a2 < c1) return { error: `El ${NOMBRES[dia]}, la segunda franja tiene que empezar después de que cerrás al mediodía.` };
+      franjas.push({ dia, abre: a2, cierra: c2 });
+    }
+  }
+  if (!franjas.length) return { error: "Marcá al menos un día en que abre tu comercio." };
+  return { franjas };
+}
+
 export async function guardarComercio(_: Estado, d: FormData): Promise<Estado> {
   const supabase = await comerciante();
   const id = Number(texto(d, "id")) || null;
@@ -39,8 +59,6 @@ export async function guardarComercio(_: Estado, d: FormData): Promise<Estado> {
     rubro: texto(d, "rubro"),
     direccion: texto(d, "direccion"),
     zona_id: texto(d, "zona_id"),
-    abre: opcional(d, "abre"),
-    cierra: opcional(d, "cierra"),
     whatsapp: opcional(d, "whatsapp"),
     lat,
     lng,
@@ -48,11 +66,25 @@ export async function guardarComercio(_: Estado, d: FormData): Promise<Estado> {
   if (!datos.nombre || !datos.rubro || !datos.direccion || !datos.zona_id) return { error: "Completá nombre, rubro, dirección y zona." };
   if (lat == null || lng == null || Number.isNaN(lat) || Number.isNaN(lng)) return { error: "Marcá en el mapa dónde está tu local." };
   if (datos.whatsapp && datos.whatsapp.replace(/\D/g, "").length < 10) return { error: "Revisá el WhatsApp: poné el número con código de área, por ejemplo 11 2345 6789." };
+  const horario = leerHorario(d);
+  if ("error" in horario) return { error: horario.error };
 
-  const { error } = id
-    ? await supabase.from("comercios").update(datos).eq("id", id)
-    : await supabase.from("comercios").insert(datos);
-  if (error) return { error: "No pudimos guardar los datos. Probá de nuevo." };
+  let comercioId = id;
+  if (id) {
+    const { error } = await supabase.from("comercios").update(datos).eq("id", id);
+    if (error) return { error: "No pudimos guardar los datos. Probá de nuevo." };
+  } else {
+    const { data, error } = await supabase.from("comercios").insert(datos).select("id").single();
+    if (error) return { error: "No pudimos guardar los datos. Probá de nuevo." };
+    comercioId = data.id;
+  }
+
+  // El horario se reemplaza entero.
+  const { error: errorBorrar } = await supabase.from("horarios").delete().eq("comercio_id", comercioId!);
+  const { error: errorHorario } = errorBorrar
+    ? { error: errorBorrar }
+    : await supabase.from("horarios").insert(horario.franjas.map((f) => ({ ...f, comercio_id: comercioId! })));
+  if (errorHorario) return { error: "Guardamos los datos, pero no el horario. Probá guardar de nuevo." };
   refresh();
   return { ok: id ? "Datos guardados." : "¡Listo! Ya podés cargar tus productos. Publicamos tu comercio cuando lo revisemos." };
 }

@@ -72,9 +72,14 @@ async function Resultados({ searchParams }: { searchParams: Params }) {
   }
 
   const lista = comercios ?? [];
-  const { data: resenas } = lista.length
-    ? await db.from("resenas").select("comercio_id, estrellas").in("comercio_id", lista.map((c) => c.id))
-    : { data: [] };
+  const ids = lista.map((c) => c.id);
+  const [{ data: resenas }, { data: horarios }] = ids.length
+    ? await Promise.all([
+        db.from("resenas").select("comercio_id, estrellas").in("comercio_id", ids),
+        db.from("horarios").select("*").in("comercio_id", ids),
+      ])
+    : [{ data: [] }, { data: [] }];
+  const franjasDe = (id: number) => (horarios ?? []).filter((h) => h.comercio_id === id);
   const ahora = new Date();
 
   return (
@@ -120,7 +125,7 @@ async function Resultados({ searchParams }: { searchParams: Params }) {
                     <p className="truncate font-semibold">{c.nombre}</p>
                     <p className="text-xs text-white/80">{c.rubro}</p>
                   </div>
-                  <Abierto abierto={abiertoAhora(c.abre, c.cierra, ahora)} />
+                  <Abierto abierto={abiertoAhora(franjasDe(c.id), ahora)} />
                 </div>
                 <div className="mt-2 flex items-center gap-2 text-xs">
                   <Estrellas valor={prom} />
@@ -133,7 +138,7 @@ async function Resultados({ searchParams }: { searchParams: Params }) {
                   </span>
                 </div>
                 <p className="mt-2 truncate text-xs text-white/70">{c.direccion}</p>
-                <p className="mt-1 text-xs text-white/70">Horario {horario(c.abre, c.cierra)}</p>
+                <p className="mt-1 text-xs text-white/70">Horario {horario(franjasDe(c.id))}</p>
               </Link>
             );
           })}

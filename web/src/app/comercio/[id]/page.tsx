@@ -31,10 +31,11 @@ async function Comercio({ params, searchParams }: Pick<Props, "params" | "search
   if (!Number.isInteger(comercioId) || comercioId <= 0) notFound();
 
   const db = supabasePublico();
-  const [{ data: c }, { data: productos }, { data: resenas }] = await Promise.all([
+  const [{ data: c }, { data: productos }, { data: resenas }, { data: franjas }] = await Promise.all([
     db.from("comercios").select("*").eq("id", comercioId).eq("aprobado", true).maybeSingle(),
     db.from("productos").select("*").eq("comercio_id", comercioId).eq("activo", true).order("nombre"),
     db.from("resenas").select("estrellas, texto, autor_nombre, creada_en").eq("comercio_id", comercioId).order("creada_en", { ascending: false }),
+    db.from("horarios").select("*").eq("comercio_id", comercioId),
   ]);
   if (!c) notFound();
 
@@ -61,10 +62,10 @@ async function Comercio({ params, searchParams }: Pick<Props, "params" | "search
       </Link>
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <h1 className="text-xl font-bold">{c.nombre}</h1>
-        <Abierto abierto={abiertoAhora(c.abre, c.cierra, ahora)} />
+        <Abierto abierto={abiertoAhora(franjas ?? [], ahora)} />
       </div>
       <p className="mt-1 text-sm text-white/80">
-        {c.rubro} · {c.direccion} · Horario {horario(c.abre, c.cierra)}
+        {c.rubro} · {c.direccion} · Horario {horario(franjas ?? [])}
       </p>
       <div className="mt-2 flex items-center gap-2 text-xs text-white/80">
         <Estrellas valor={prom} />

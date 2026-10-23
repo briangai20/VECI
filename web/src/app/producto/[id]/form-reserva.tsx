@@ -2,6 +2,7 @@
 
 import { startTransition, useActionState } from "react";
 import { reservar, type EstadoReserva } from "@/app/reservas/acciones";
+import { useListo } from "@/components/use-listo";
 
 type Props = {
   productoId: number;
@@ -13,6 +14,7 @@ type Props = {
 
 export function FormReserva({ productoId, maximo, franjas, textoBoton, precio }: Props) {
   const [estado, accion, enviando] = useActionState<EstadoReserva, FormData>(reservar, {});
+  const listo = useListo();
 
   return (
     <form
@@ -48,7 +50,7 @@ export function FormReserva({ productoId, maximo, franjas, textoBoton, precio }:
       <p className="mt-3 text-xs text-white/80">
         Pagás en el local al retirar{precio == null ? " (el precio te lo confirma el comercio)" : ""}. El pago online con Mercado Pago llega pronto.
       </p>
-      <button disabled={enviando} className="boton mt-4 w-full rounded-xl px-4 py-3 text-sm font-semibold">
+      <button disabled={enviando || !listo} className="boton mt-4 w-full rounded-xl px-4 py-3 text-sm font-semibold">
         {enviando ? "Reservando…" : textoBoton}
       </button>
       <p role="status" className="mt-2 min-h-5 text-sm text-[#ffb4a2]">
