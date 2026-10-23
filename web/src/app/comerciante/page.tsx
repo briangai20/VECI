@@ -152,6 +152,7 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
             {errorAccion}
           </p>
         ) : null}
+        <p className="mt-1 text-sm text-white/80">Respondé cada reserva dentro de las 24 horas: si no, vence sola y el cliente la ve como vencida.</p>
         {abiertas.length === 0 ? (
           <p className="mt-3 text-sm text-white/80">No tenés reservas para responder. Aparecen acá en cuanto un vecino reserve.</p>
         ) : (
