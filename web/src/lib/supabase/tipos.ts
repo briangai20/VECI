@@ -17,6 +17,7 @@ export type Database = {
     Tables: {
       comercios: {
         Row: {
+          abre_feriados: boolean
           aprobado: boolean
           creado_en: string
           direccion: string
@@ -30,6 +31,7 @@ export type Database = {
           zona_id: string
         }
         Insert: {
+          abre_feriados?: boolean
           aprobado?: boolean
           creado_en?: string
           direccion: string
@@ -43,6 +45,7 @@ export type Database = {
           zona_id: string
         }
         Update: {
+          abre_feriados?: boolean
           aprobado?: boolean
           creado_en?: string
           direccion?: string
@@ -71,6 +74,18 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      cierres: {
+        Row: { comercio_id: number; desde: string; hasta: string; id: number; motivo: string | null }
+        Insert: { comercio_id: number; desde: string; hasta: string; id?: never; motivo?: string | null }
+        Update: { comercio_id?: number; desde?: string; hasta?: string; id?: never; motivo?: string | null }
+        Relationships: []
+      }
+      feriados: {
+        Row: { fecha: string; nombre: string; tipo: string }
+        Insert: { fecha: string; nombre: string; tipo: string }
+        Update: { fecha?: string; nombre?: string; tipo?: string }
+        Relationships: []
       }
       horarios: {
         Row: {
@@ -405,6 +420,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      dias_cerrados: {
+        Args: { p_comercio: number; p_desde: string; p_hasta: string }
+        Returns: { fecha: string; motivo: string }[]
+      }
       aceptar_reserva: { Args: { p_reserva: number }; Returns: undefined }
       cancelar_reserva: { Args: { p_reserva: number }; Returns: undefined }
       comercios_cercanos: {

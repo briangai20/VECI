@@ -79,9 +79,16 @@ export function horario(franjas: Franja[]) {
     .join(" · ");
 }
 
-// Si el comercio está abierto ahora (null si no cargó horario).
-export function abiertoAhora(franjas: Franja[], ahora: Date) {
+// Fecha (AAAA-MM-DD) en Argentina, corrida "dias" días desde ahora.
+export function fechaAR(ahora: Date, dias = 0) {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: ZONA_HORARIA }).format(new Date(ahora.getTime() + dias * DIA));
+}
+
+// Si el comercio está abierto ahora (null si no cargó horario). "cerrados"
+// son las fechas en que no abre (feriados y cierres puntuales).
+export function abiertoAhora(franjas: Franja[], ahora: Date, cerrados: string[] = []) {
   if (!franjas.length) return null;
+  if (cerrados.includes(fechaAR(ahora))) return false;
   const { dia, minuto } = enArgentina(ahora);
   const ayer = (dia + 6) % 7;
   return (
@@ -91,15 +98,18 @@ export function abiertoAhora(franjas: Franja[], ahora: Date) {
 }
 
 // Franjas de retiro de 2 horas dentro del horario: las que quedan hoy (con al
-// menos una hora de margen) y las de los dos próximos días que abre.
-export function franjasRetiro(franjas: Franja[], ahora: Date) {
+// menos una hora de margen) y las de los dos próximos días que abre, salteando
+// las fechas cerradas (feriados y cierres puntuales).
+export function franjasRetiro(franjas: Franja[], ahora: Date, cerrados: string[] = []) {
   const semana = franjas.length ? franjas : DIAS.map((_, dia) => ({ dia, abre: "09:00", cierra: "18:00" }));
   const { dia: hoy, minuto } = enArgentina(ahora);
   const opciones: string[] = [];
   let diasConHorario = 0;
-  for (let i = 0; i < 7 && diasConHorario < 3; i++) {
+  for (let i = 0; i < 21 && diasConHorario < 3; i++) {
     const dia = (hoy + i) % 7;
-    const nombre = i === 0 ? "Hoy" : i === 1 ? "Mañana" : DIAS[dia];
+    if (cerrados.includes(fechaAR(ahora, i))) continue;
+    const fecha = fechaAR(ahora, i);
+    const nombre = i === 0 ? "Hoy" : i === 1 ? "Mañana" : i < 7 ? DIAS[dia] : `${DIAS[dia]} ${Number(fecha.slice(8))}/${Number(fecha.slice(5, 7))}`;
     const bloques: string[] = [];
     for (const [a, b] of delDia(semana, dia)) {
       for (let m = a; m < b; m += 120) {

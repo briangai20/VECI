@@ -4,7 +4,8 @@ import { Suspense } from "react";
 import { FotoProducto } from "@/components/foto-producto";
 import { Abierto, Estrellas, Stock } from "@/components/insignias";
 import { RegistrarVista } from "@/components/registrar-vista";
-import { abiertoAhora, disponibilidad, franjasRetiro, horario, nota, plata, promedio } from "@/lib/formato";
+import { AvisoCierres } from "@/components/aviso-cierres";
+import { abiertoAhora, fechaAR, disponibilidad, franjasRetiro, horario, nota, plata, promedio } from "@/lib/formato";
 import { usuarioActual } from "@/lib/sesion";
 import { FormReserva } from "./form-reserva";
 import { supabasePublico } from "@/lib/supabase/publico";
@@ -47,6 +48,8 @@ async function Producto({ params }: Pick<Props, "params">) {
   ]);
 
   const ahora = new Date();
+  const { data: cierres } = await db.rpc("dias_cerrados", { p_comercio: c.id, p_desde: fechaAR(ahora), p_hasta: fechaAR(ahora, 21) });
+  const cerrados = (cierres ?? []).map((x) => x.fecha);
   const d = disponibilidad(p, ahora);
   const prom = promedio((resenas ?? []).map((r) => r.estrellas));
   const masProductos = (otros ?? []).filter((o) => !hermanos?.some((h) => h.id === o.id)).slice(0, 4);
@@ -84,7 +87,7 @@ async function Producto({ params }: Pick<Props, "params">) {
           {p.marca ? <p className="mt-1 text-sm text-white/80">Marca: {p.marca}</p> : null}
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <Stock d={d} />
-            <Abierto abierto={abiertoAhora(franjas ?? [], ahora)} />
+            <Abierto abierto={abiertoAhora(franjas ?? [], ahora, cerrados)} />
           </div>
           {d.requiereConfirmacion ? (
             <p className="mt-2 text-xs text-white/85">Este producto necesita confirmación del comercio antes de tu retiro.</p>
@@ -96,7 +99,7 @@ async function Producto({ params }: Pick<Props, "params">) {
               <Reserva
                 productoId={p.id}
                 maximo={p.modo === "exacto" && !d.requiereConfirmacion ? Math.min(Math.max(p.stock ?? 1, 1), 20) : 10}
-                franjas={franjasRetiro(franjas ?? [], ahora)}
+                franjas={franjasRetiro(franjas ?? [], ahora, cerrados)}
                 textoBoton={textoBoton}
                 precio={p.precio}
               />
@@ -121,6 +124,7 @@ async function Producto({ params }: Pick<Props, "params">) {
             <p className="text-sm font-semibold">Retirás en el local</p>
             <p className="mt-1 text-xs text-white/80">{c.direccion}</p>
             <p className="mt-1 text-xs text-white/80">Horario de atención: {horario(franjas ?? [])}</p>
+            <AvisoCierres cierres={cierres ?? []} ahora={ahora} />
           </div>
         </div>
       </div>

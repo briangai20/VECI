@@ -28,7 +28,7 @@ function inicial(franjas: Franja[]): Dia[] {
 
 // Editor del horario de atención. Manda los campos h{dia}on, h{dia}a1,
 // h{dia}c1 y, si tiene horario cortado, h{dia}a2 y h{dia}c2.
-export function HorarioSemanal({ franjas }: { franjas: Franja[] }) {
+export function HorarioSemanal({ franjas, abreFeriados }: { franjas: Franja[]; abreFeriados: boolean }) {
   const [dias, setDias] = useState(() => inicial(franjas));
   const cambiar = (dia: number, parcial: Partial<Dia>) => setDias((d) => d.map((x, i) => (i === dia ? { ...x, ...parcial } : x)));
   const copiarLunes = () => setDias((d) => d.map((x, i) => (i >= 2 && i <= 5 ? { ...d[1] } : x)));
@@ -78,6 +78,13 @@ export function HorarioSemanal({ franjas }: { franjas: Franja[] }) {
       <button type="button" onClick={copiarLunes} className="mt-3 rounded-lg border border-white/30 px-3 py-1.5 text-xs hover:bg-white/10">
         Copiar el horario del lunes de martes a viernes
       </button>
+      <label className="mt-4 flex items-start gap-2 text-sm">
+        <input type="checkbox" name="abre_feriados" defaultChecked={abreFeriados} className="mt-0.5 h-4 w-4 accent-white" />
+        <span>
+          Abro los feriados nacionales
+          <span className="block text-xs text-white/70">Si no lo marcás, los feriados figurás cerrado y las reservas esperan al día siguiente que abrís.</span>
+        </span>
+      </label>
     </fieldset>
   );
 }

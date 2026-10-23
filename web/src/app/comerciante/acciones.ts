@@ -60,6 +60,7 @@ export async function guardarComercio(_: Estado, d: FormData): Promise<Estado> {
     direccion: texto(d, "direccion"),
     zona_id: texto(d, "zona_id"),
     whatsapp: opcional(d, "whatsapp"),
+    abre_feriados: d.get("abre_feriados") === "on",
     lat,
     lng,
   };
@@ -161,4 +162,27 @@ export async function ofrecerAlternativas(d: FormData) {
   volverConError(error);
   after(() => avisarReserva(reserva, "alternativa"));
   redirect("/comerciante#reservas"); // vuelve sin el cartel de error, si había uno
+}
+
+// Días que el comercio cierra por su cuenta (vacaciones, inventario...).
+export async function agregarCierre(d: FormData) {
+  const supabase = await comerciante();
+  const comercio = Number(texto(d, "comercio_id"));
+  const desde = texto(d, "desde");
+  const hasta = texto(d, "hasta") || desde;
+  const fecha = /^\d{4}-\d{2}-\d{2}$/;
+  if (!fecha.test(desde) || !fecha.test(hasta) || hasta < desde) {
+    redirect(`/comerciante?error=${encodeURIComponent("Revisá las fechas del cierre: la fecha final no puede ser anterior a la inicial.")}#cierres`);
+  }
+  const { error } = await supabase
+    .from("cierres")
+    .insert({ comercio_id: comercio, desde, hasta, motivo: opcional(d, "motivo")?.slice(0, 80) ?? null });
+  if (error) redirect(`/comerciante?error=${encodeURIComponent("No pudimos guardar el cierre. Probá de nuevo.")}#cierres`);
+  redirect("/comerciante#cierres");
+}
+
+export async function borrarCierre(d: FormData) {
+  const supabase = await comerciante();
+  await supabase.from("cierres").delete().eq("id", Number(texto(d, "id")));
+  redirect("/comerciante#cierres");
 }

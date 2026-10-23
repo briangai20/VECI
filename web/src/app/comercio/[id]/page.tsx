@@ -5,7 +5,8 @@ import { FotoProducto } from "@/components/foto-producto";
 import { Abierto, Estrellas, Stock } from "@/components/insignias";
 import { MapaComercios } from "@/components/mapa-comercios";
 import { RegistrarVista } from "@/components/registrar-vista";
-import { abiertoAhora, disponibilidad, horario, nota, plata, promedio } from "@/lib/formato";
+import { AvisoCierres } from "@/components/aviso-cierres";
+import { abiertoAhora, fechaAR, disponibilidad, horario, nota, plata, promedio } from "@/lib/formato";
 import { supabasePublico } from "@/lib/supabase/publico";
 import type { Tabla } from "@/lib/supabase/tipos";
 
@@ -40,6 +41,8 @@ async function Comercio({ params, searchParams }: Pick<Props, "params" | "search
   if (!c) notFound();
 
   const ahora = new Date();
+  const { data: cierres } = await db.rpc("dias_cerrados", { p_comercio: c.id, p_desde: fechaAR(ahora), p_hasta: fechaAR(ahora, 21) });
+  const cerrados = (cierres ?? []).map((x) => x.fecha);
   const prom = promedio((resenas ?? []).map((r) => r.estrellas));
   const todos = productos ?? [];
   const buscado = sinAcentos(q.trim());
@@ -62,11 +65,12 @@ async function Comercio({ params, searchParams }: Pick<Props, "params" | "search
       </Link>
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <h1 className="text-xl font-bold">{c.nombre}</h1>
-        <Abierto abierto={abiertoAhora(franjas ?? [], ahora)} />
+        <Abierto abierto={abiertoAhora(franjas ?? [], ahora, cerrados)} />
       </div>
       <p className="mt-1 text-sm text-white/80">
         {c.rubro} · {c.direccion} · Horario {horario(franjas ?? [])}
       </p>
+      <AvisoCierres cierres={cierres ?? []} ahora={ahora} />
       <div className="mt-2 flex items-center gap-2 text-xs text-white/80">
         <Estrellas valor={prom} />
         <span>{nota(prom) ?? "Sin reseñas"}</span>

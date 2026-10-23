@@ -59,7 +59,7 @@ export function FormComercio({ comercio, zonas, franjas }: { comercio: Tabla<"co
         <input name="whatsapp" type="tel" defaultValue={comercio?.whatsapp ?? ""} className="campo mt-1" placeholder="11 2345 6789" />
       </label>
       <div className="md:col-span-2">
-        <HorarioSemanal franjas={franjas} />
+        <HorarioSemanal franjas={franjas} abreFeriados={comercio?.abre_feriados ?? false} />
       </div>
       <div className="md:col-span-2">
         <ElegirUbicacion

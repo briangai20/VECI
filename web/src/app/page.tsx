@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { Filtros, type ValoresFiltro } from "@/components/filtros";
 import { Abierto, Estrellas } from "@/components/insignias";
 import { MapaComercios } from "@/components/mapa-comercios";
-import { abiertoAhora, horario, km, nota, promedio, viaje } from "@/lib/formato";
+import { abiertoAhora, fechaAR, horario, km, nota, promedio, viaje } from "@/lib/formato";
 import { supabasePublico } from "@/lib/supabase/publico";
 import { CENTROS, RADIO_INICIAL, ZONA_INICIAL } from "@/lib/zonas";
 
@@ -81,6 +81,12 @@ async function Resultados({ searchParams }: { searchParams: Params }) {
     : [{ data: [] }, { data: [] }];
   const franjasDe = (id: number) => (horarios ?? []).filter((h) => h.comercio_id === id);
   const ahora = new Date();
+  // Qué comercios están cerrados hoy por feriado o cierre puntual.
+  const cerradosHoy = new Set(
+    (
+      await Promise.all(ids.map((id) => db.rpc("dias_cerrados", { p_comercio: id, p_desde: fechaAR(ahora), p_hasta: fechaAR(ahora) })))
+    ).flatMap((r, i) => (r.data?.length ? [ids[i]] : [])),
+  );
 
   return (
     <>
@@ -125,7 +131,7 @@ async function Resultados({ searchParams }: { searchParams: Params }) {
                     <p className="truncate font-semibold">{c.nombre}</p>
                     <p className="text-xs text-white/80">{c.rubro}</p>
                   </div>
-                  <Abierto abierto={abiertoAhora(franjasDe(c.id), ahora)} />
+                  <Abierto abierto={abiertoAhora(franjasDe(c.id), ahora, cerradosHoy.has(c.id) ? [fechaAR(ahora)] : [])} />
                 </div>
                 <div className="mt-2 flex items-center gap-2 text-xs">
                   <Estrellas valor={prom} />

@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { disponibilidad, plata } from "@/lib/formato";
+import { disponibilidad, fechaAR, plata } from "@/lib/formato";
 import { usuarioActual } from "@/lib/sesion";
 import { supabaseServidor } from "@/lib/supabase/servidor";
 import type { Enum } from "@/lib/supabase/tipos";
-import { cambiarReserva, ofrecerAlternativas } from "./acciones";
+import { agregarCierre, borrarCierre, cambiarReserva, ofrecerAlternativas } from "./acciones";
+
+const fechaCorta = (f: string) => `${Number(f.slice(8))}/${Number(f.slice(5, 7))}`;
 import { FormComercio } from "./form-comercio";
 import { ProductoFila } from "./producto-fila";
 
@@ -79,7 +81,8 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
     );
   }
 
-  const [{ data: productos }, { data: reservas }, { data: stats }, { data: franjas }] = await Promise.all([
+  const ahora = new Date();
+  const [{ data: productos }, { data: reservas }, { data: stats }, { data: franjas }, { data: cierres }, { data: feriados }] = await Promise.all([
     supabase.from("productos").select("*").eq("comercio_id", comercio.id).order("nombre"),
     supabase
       .from("reservas")
@@ -89,9 +92,10 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
       .limit(30),
     supabase.rpc("estadisticas_comercio", { p_comercio: comercio.id }),
     supabase.from("horarios").select("*").eq("comercio_id", comercio.id),
+    supabase.from("cierres").select("*").eq("comercio_id", comercio.id).gte("hasta", fechaAR(ahora)).order("desde"),
+    supabase.from("feriados").select("*").neq("tipo", "puente").gte("fecha", fechaAR(ahora)).lte("fecha", fechaAR(ahora, 90)).order("fecha"),
   ]);
   const s = stats?.[0];
-  const ahora = new Date();
   const enCurso = (e: string) => e === "pendiente" || e === "alternativa" || e === "aceptada";
   const abiertas = (reservas ?? []).filter((r) => enCurso(r.estado));
   const cerradas = (reservas ?? []).filter((r) => !enCurso(r.estado));
@@ -111,6 +115,11 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
 
   return (
     <div className="space-y-6">
+      {typeof errorAccion === "string" ? (
+        <p role="alert" className="rounded-2xl border border-naranja bg-naranja/15 p-4 text-sm">
+          {errorAccion}
+        </p>
+      ) : null}
       {!comercio.aprobado ? (
         <p className="rounded-2xl border border-naranja bg-naranja/10 p-4 text-sm">
           <span className="font-semibold">Tu comercio está en revisión.</span> Mientras tanto podés cargar productos; los vecinos lo van a ver cuando lo publiquemos.
@@ -148,11 +157,6 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
 
       <section id="reservas" className="tarjeta rounded-3xl p-6">
         <h2 className="text-lg font-semibold">Reservas</h2>
-        {typeof errorAccion === "string" ? (
-          <p role="alert" className="mt-3 rounded-xl border border-naranja bg-naranja/15 p-3 text-sm">
-            {errorAccion}
-          </p>
-        ) : null}
         <p className="mt-1 text-sm text-white/80">Respondé cada reserva dentro de las 2 horas de tu horario de atención: si no, vence sola. Las que llegan con el local cerrado empiezan a contar cuando abrís.</p>
         {abiertas.length === 0 ? (
           <p className="mt-3 text-sm text-white/80">No tenés reservas para responder. Aparecen acá en cuanto un vecino reserve.</p>
@@ -253,6 +257,50 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
             <ProductoFila key={p.id} p={p} comercioId={comercio.id} ahora={ahora} />
           ))}
         </div>
+      </section>
+
+      <section id="cierres" className="tarjeta rounded-3xl p-6">
+        <h2 className="text-lg font-semibold">Días que cerrás</h2>
+        <p className="mt-1 text-sm text-white/80">
+          Vacaciones, inventario o cualquier día que no abras. Esos días figurás cerrado y las reservas esperan a que vuelvas a abrir.
+        </p>
+        {(cierres ?? []).length ? (
+          <ul className="mt-3 space-y-2">
+            {(cierres ?? []).map((ci) => (
+              <li key={ci.id} className="flex items-center justify-between gap-3 rounded-xl border border-white/20 px-3 py-2 text-sm">
+                <span>
+                  {fechaCorta(ci.desde)}
+                  {ci.hasta !== ci.desde ? ` al ${fechaCorta(ci.hasta)}` : ""}
+                  {ci.motivo ? ` · ${ci.motivo}` : ""}
+                </span>
+                <form action={borrarCierre}>
+                  <input type="hidden" name="id" value={ci.id} />
+                  <button className="text-xs underline">Quitar</button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        <form action={agregarCierre} className="mt-4 grid gap-3 sm:grid-cols-4">
+          <input type="hidden" name="comercio_id" value={comercio.id} />
+          <label className="block text-xs">
+            Desde
+            <input type="date" name="desde" required min={fechaAR(ahora)} className="campo mt-1" />
+          </label>
+          <label className="block text-xs">
+            Hasta (si es más de un día)
+            <input type="date" name="hasta" min={fechaAR(ahora)} className="campo mt-1" />
+          </label>
+          <label className="block text-xs">
+            Motivo (opcional)
+            <input name="motivo" maxLength={80} placeholder="Vacaciones" className="campo mt-1" />
+          </label>
+          <button className="boton self-end rounded-xl px-4 py-2.5 text-sm font-semibold">Agregar cierre</button>
+        </form>
+        <p className="mt-4 text-xs text-white/75">
+          Próximos feriados nacionales{comercio.abre_feriados ? " (marcaste que abrís los feriados)" : " (figurás cerrado; si abrís, marcalo en el horario)"}:{" "}
+          {(feriados ?? []).map((f) => `${fechaCorta(f.fecha)} ${f.nombre}`).join(" · ") || "no hay en los próximos 3 meses"}.
+        </p>
       </section>
 
       <section id="datos" className="tarjeta rounded-3xl p-6">
