@@ -4,7 +4,9 @@ import { Suspense } from "react";
 import { FotoProducto } from "@/components/foto-producto";
 import { Abierto, Estrellas, Stock } from "@/components/insignias";
 import { RegistrarVista } from "@/components/registrar-vista";
-import { abiertoAhora, disponibilidad, horario, nota, plata, promedio } from "@/lib/formato";
+import { abiertoAhora, disponibilidad, franjasRetiro, horario, nota, plata, promedio } from "@/lib/formato";
+import { usuarioActual } from "@/lib/sesion";
+import { FormReserva } from "./form-reserva";
 import { supabasePublico } from "@/lib/supabase/publico";
 
 type Props = PageProps<"/producto/[id]">;
@@ -88,10 +90,21 @@ async function Producto({ params }: Pick<Props, "params">) {
           ) : null}
           <p className="mt-4 text-3xl font-black">{plata(p.precio)}</p>
 
-          <button type="button" disabled className="boton mt-5 w-full rounded-xl px-4 py-3 text-sm font-semibold">
-            {textoBoton}
-          </button>
-          <p className="mt-2 text-xs text-white/75">Las reservas se activan cuando sumemos las cuentas de usuario.</p>
+          {d.sePuede ? (
+            <Suspense fallback={<div className="mt-5 h-40 animate-pulse rounded-xl bg-white/5" />}>
+              <Reserva
+                productoId={p.id}
+                maximo={p.modo === "exacto" && !d.requiereConfirmacion ? Math.min(Math.max(p.stock ?? 1, 1), 20) : 10}
+                franjas={franjasRetiro(c.abre, c.cierra, ahora)}
+                textoBoton={textoBoton}
+                precio={p.precio}
+              />
+            </Suspense>
+          ) : (
+            <button type="button" disabled className="boton mt-5 w-full rounded-xl px-4 py-3 text-sm font-semibold">
+              {textoBoton}
+            </button>
+          )}
           {c.whatsapp ? (
             <a
               href={`https://wa.me/${c.whatsapp.replace(/\D/g, "")}?text=${encodeURIComponent(`Hola, vi en VECI "${p.nombre}". ¿Lo tienen disponible?`)}`}
@@ -162,4 +175,24 @@ async function Producto({ params }: Pick<Props, "params">) {
       ) : null}
     </>
   );
+}
+
+// Formulario de reserva si hay sesión; si no, un botón que lleva a ingresar
+// y vuelve a este producto.
+async function Reserva(props: React.ComponentProps<typeof FormReserva>) {
+  const usuario = await usuarioActual();
+  if (!usuario) {
+    return (
+      <>
+        <Link
+          href={`/ingresar?siguiente=${encodeURIComponent(`/producto/${props.productoId}`)}`}
+          className="boton mt-5 block w-full rounded-xl px-4 py-3 text-center text-sm font-semibold"
+        >
+          {props.textoBoton}
+        </Link>
+        <p className="mt-2 text-xs text-white/75">Para reservar ingresá o creá tu cuenta. Te lleva un minuto.</p>
+      </>
+    );
+  }
+  return <FormReserva {...props} />;
 }

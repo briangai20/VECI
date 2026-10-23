@@ -20,6 +20,9 @@ export async function MenuCuenta() {
   }
   return (
     <>
+      <Link href="/reservas" className={enlace}>
+        Mis reservas
+      </Link>
       {usuario.rol === "comerciante" ? (
         <Link href="/comerciante" className={enlace}>
           Mi comercio

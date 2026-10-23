@@ -45,6 +45,24 @@ export function abiertoAhora(abre: string | null, cierra: string | null, ahora: 
   return actual >= hhmm(abre) && actual < hhmm(cierra);
 }
 
+// Franjas de retiro de 2 horas dentro del horario del comercio: las que
+// quedan hoy (con al menos una hora de margen) y todas las de mañana.
+export function franjasRetiro(abre: string | null, cierra: string | null, ahora: Date) {
+  const minutos = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
+  const desde = abre ? minutos(abre) : 9 * 60;
+  const hasta = cierra ? minutos(cierra) : 18 * 60;
+  const actual = minutos(
+    new Intl.DateTimeFormat("es-AR", { timeZone: ZONA_HORARIA, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(ahora),
+  );
+  const fmt = (m: number) => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")}`;
+  const bloques: [number, number][] = [];
+  for (let i = desde; i < hasta; i += 120) bloques.push([i, Math.min(i + 120, hasta)]);
+  return [
+    ...bloques.filter(([, fin]) => fin - 60 > actual).map(([a, b]) => `Hoy, ${fmt(a)} a ${fmt(b)}`),
+    ...bloques.map(([a, b]) => `Mañana, ${fmt(a)} a ${fmt(b)}`),
+  ];
+}
+
 export type Disponibilidad = {
   texto: string;
   tono: "ok" | "poco" | "no" | "consultar";
