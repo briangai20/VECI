@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { FotoProducto } from "@/components/foto-producto";
 import { Abierto, Estrellas, Stock } from "@/components/insignias";
+import { MapaComercios } from "@/components/mapa-comercios";
 import { RegistrarVista } from "@/components/registrar-vista";
 import { abiertoAhora, disponibilidad, horario, nota, plata, promedio } from "@/lib/formato";
 import { supabasePublico } from "@/lib/supabase/publico";
@@ -70,6 +71,25 @@ async function Comercio({ params, searchParams }: Pick<Props, "params" | "search
         <span>{nota(prom) ?? "Sin reseñas"}</span>
         {resenas?.length ? <span>({resenas.length})</span> : null}
       </div>
+
+      {c.lat != null && c.lng != null ? (
+        <div className="mt-4">
+          <MapaComercios
+            centro={{ lat: c.lat, lng: c.lng }}
+            seleccionado={c.id}
+            comercios={[{ id: c.id, nombre: c.nombre, rubro: c.rubro, direccion: c.direccion, lat: c.lat, lng: c.lng }]}
+            className="h-56"
+          />
+          <a
+            href={`https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 inline-block text-sm text-white/85 underline hover:text-white"
+          >
+            Cómo llegar
+          </a>
+        </div>
+      ) : null}
 
       <form className="mt-6" role="search">
         <label htmlFor="catq" className="sr-only">

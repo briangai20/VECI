@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import Link from "next/link";
+import { Suspense } from "react";
+import { MenuCuenta } from "@/components/menu-cuenta";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -40,6 +42,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               <Link href="/" className="rounded-xl px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10">
                 Buscar
               </Link>
+              <Suspense fallback={null}>
+                <MenuCuenta />
+              </Suspense>
             </nav>
           </div>
         </header>

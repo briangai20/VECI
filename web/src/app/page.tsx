@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { Filtros, type ValoresFiltro } from "@/components/filtros";
 import { Abierto, Estrellas } from "@/components/insignias";
+import { MapaComercios } from "@/components/mapa-comercios";
 import { abiertoAhora, horario, km, nota, promedio, viaje } from "@/lib/formato";
 import { supabasePublico } from "@/lib/supabase/publico";
 import { CENTROS, RADIO_INICIAL, ZONA_INICIAL } from "@/lib/zonas";
@@ -78,6 +79,18 @@ async function Resultados({ searchParams }: { searchParams: Params }) {
 
   return (
     <>
+      <div className="mb-6">
+        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="font-semibold">Mapa</h2>
+          <span className="text-xs text-white/80">Tocá un comercio para ver cómo llegar o su catálogo</span>
+        </div>
+        <MapaComercios
+          centro={centro}
+          radioKm={f.radio}
+          comercios={lista.map((c) => ({ id: c.id, nombre: c.nombre, rubro: c.rubro, direccion: c.direccion, lat: c.lat, lng: c.lng }))}
+        />
+      </div>
+
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h1 className="text-lg font-semibold">Comercios cercanos</h1>
         <span className="text-xs text-white/80">
