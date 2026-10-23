@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useState } from "react";
 import { ingresar, registrarse, type EstadoCuenta } from "./acciones";
 
@@ -34,6 +35,9 @@ export function FormularioCuenta({ siguiente, modoInicial }: { siguiente: string
           <button disabled={ingresando} className="boton w-full rounded-xl px-4 py-3 text-sm font-semibold">
             {ingresando ? "Ingresando…" : "Ingresar"}
           </button>
+          <Link href="/recuperar" className="block text-center text-sm text-white/80 underline">
+            ¿Olvidaste tu contraseña?
+          </Link>
         </form>
       ) : (
         <form key={JSON.stringify(estadoAlta.valores ?? {})} action={accionAlta} className="mt-6 space-y-4">

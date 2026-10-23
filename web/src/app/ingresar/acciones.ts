@@ -70,3 +70,35 @@ export async function salir() {
   await supabase.auth.signOut();
   redirect("/");
 }
+
+// Manda el mail para elegir una contraseña nueva. Siempre responde lo mismo,
+// exista o no la cuenta, para no revelar qué mails están registrados.
+export async function pedirNuevaClave(_: EstadoCuenta, datos: FormData): Promise<EstadoCuenta> {
+  const email = String(datos.get("email") ?? "").trim();
+  if (!email) return { error: "Escribí el mail con el que te registraste." };
+  const h = await headers();
+  const origen = h.get("origin") ?? `https://${h.get("host")}`;
+  const supabase = await supabaseServidor();
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${origen}/auth/callback?siguiente=${encodeURIComponent("/nueva-clave")}`,
+  });
+  if (error && error.message.toLowerCase().includes("rate limit")) return { error: traducir(error.message), valores: { email } };
+  return { aviso: `Si hay una cuenta con ${email}, te llega un mail con un link para elegir una contraseña nueva. Revisá también el spam.` };
+}
+
+export async function cambiarClave(_: EstadoCuenta, datos: FormData): Promise<EstadoCuenta> {
+  const clave = String(datos.get("password") ?? "");
+  const repetida = String(datos.get("repetida") ?? "");
+  if (clave.length < 8) return { error: "La contraseña tiene que tener al menos 8 caracteres." };
+  if (clave !== repetida) return { error: "Las dos contraseñas no coinciden." };
+  const supabase = await supabaseServidor();
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) return { error: "El link venció. Pedí uno nuevo desde “¿Olvidaste tu contraseña?”." };
+  const { error } = await supabase.auth.updateUser({ password: clave });
+  if (error) {
+    const m = error.message.toLowerCase();
+    if (m.includes("different from the old")) return { error: "Elegí una contraseña distinta de la anterior." };
+    return { error: traducir(error.message) };
+  }
+  return { aviso: "¡Listo! Tu contraseña nueva ya quedó guardada." };
+}

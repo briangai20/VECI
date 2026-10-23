@@ -1,7 +1,9 @@
 import { disponibilidad, plata } from "@/lib/formato";
 import type { Tabla } from "@/lib/supabase/tipos";
+import { FotoProducto } from "@/components/foto-producto";
 import { Stock } from "@/components/insignias";
 import { confirmarStock, guardarProducto } from "./acciones";
+import { SubirFoto } from "./subir-foto";
 
 // Un producto editable (o el formulario de alta, si no se pasa producto).
 export function ProductoFila({ p, comercioId, ahora }: { p?: Tabla<"productos">; comercioId: number; ahora: Date }) {
@@ -11,11 +13,19 @@ export function ProductoFila({ p, comercioId, ahora }: { p?: Tabla<"productos">;
       {p ? <input type="hidden" name="id" value={p.id} /> : <input type="hidden" name="comercio_id" value={comercioId} />}
       <div className="flex flex-wrap items-start justify-between gap-2">
         {p ? (
-          <div className="min-w-0">
-            <p className="font-semibold">{p.nombre}</p>
-            <p className="text-xs text-white/70">
-              {plata(p.precio)} · {p.activo ? "Publicado" : "Oculto"}
-            </p>
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-white/20 bg-marino-claro">
+              <FotoProducto url={p.foto_url} nombre={p.nombre} sizes="56px" texto="text-xl" />
+            </div>
+            <div className="min-w-0">
+              <p className="font-semibold">{p.nombre}</p>
+              <p className="text-xs text-white/70">
+                {plata(p.precio)} · {p.activo ? "Publicado" : "Oculto"}
+              </p>
+              <div className="mt-1">
+                <SubirFoto productoId={p.id} comercioId={comercioId} tieneFoto={!!p.foto_url} />
+              </div>
+            </div>
           </div>
         ) : (
           <p className="font-semibold">Agregar un producto</p>

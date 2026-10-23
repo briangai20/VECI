@@ -186,3 +186,18 @@ export async function borrarCierre(d: FormData) {
   await supabase.from("cierres").delete().eq("id", Number(texto(d, "id")));
   redirect("/comerciante#cierres");
 }
+
+// Guarda la foto recién subida a Storage y borra la anterior, si era nuestra.
+export async function guardarFoto(productoId: number, url: string) {
+  const supabase = await comerciante();
+  const { data: p } = await supabase.from("productos").select("comercio_id, foto_url").eq("id", productoId).single();
+  if (!p) throw new Error("Producto no encontrado");
+  const carpeta = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/productos/${p.comercio_id}/`;
+  if (!url.startsWith(carpeta)) throw new Error("La foto no es de este comercio");
+
+  const { error } = await supabase.from("productos").update({ foto_url: url }).eq("id", productoId);
+  if (error) throw new Error("No se pudo guardar la foto");
+  const raiz = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/productos/`;
+  if (p.foto_url?.startsWith(raiz)) await supabase.storage.from("productos").remove([p.foto_url.slice(raiz.length)]);
+  refresh();
+}
