@@ -64,8 +64,9 @@ export function MapaComercios({ centro, comercios, radioKm, seleccionado, classN
   // Crea el mapa una sola vez.
   useEffect(() => {
     let cancelado = false;
-    import("maplibre-gl").then(({ default: maplibregl }) => {
+    import("maplibre-gl").then((maplibregl) => {
       if (cancelado || !contenedor.current) return;
+      maplibregl.setWorkerUrl("/maplibre/maplibre-gl-worker.mjs"); // ver scripts/copiar-worker-mapa.mjs
       const m = new maplibregl.Map({
         container: contenedor.current,
         style: ESTILO,
@@ -89,7 +90,7 @@ export function MapaComercios({ centro, comercios, radioKm, seleccionado, classN
   async function dibujar() {
     const m = mapa.current;
     if (!m) return;
-    const { default: maplibregl } = await import("maplibre-gl");
+    const maplibregl = await import("maplibre-gl");
 
     marcadores.current.forEach((x) => x.remove());
     marcadores.current = [];

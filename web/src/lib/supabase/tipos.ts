@@ -503,5 +503,6 @@ type Publico = Database["public"]
 
 export type Tabla<T extends keyof Publico["Tables"]> = Publico["Tables"][T]["Row"]
 export type TablesInsert<T extends keyof Publico["Tables"]> = Publico["Tables"][T]["Insert"]
+export type TablesUpdate<T extends keyof Publico["Tables"]> = Publico["Tables"][T]["Update"]
 export type Enum<T extends keyof Publico["Enums"]> = Publico["Enums"][T]
 export type ComercioCercano = Publico["Functions"]["comercios_cercanos"]["Returns"][number]

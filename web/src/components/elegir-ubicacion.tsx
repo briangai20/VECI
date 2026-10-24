@@ -17,9 +17,10 @@ export function ElegirUbicacion({ inicial, centroZona }: { inicial: Punto | null
 
   useEffect(() => {
     let cancelado = false;
-    import("maplibre-gl").then(({ default: maplibregl }) => {
+    import("maplibre-gl").then((maplibregl) => {
       if (cancelado || !contenedor.current) return;
       const inicio = inicial ?? centroZona;
+      maplibregl.setWorkerUrl("/maplibre/maplibre-gl-worker.mjs"); // ver scripts/copiar-worker-mapa.mjs
       const m = new maplibregl.Map({
         container: contenedor.current,
         style: "https://tiles.openfreemap.org/styles/liberty",

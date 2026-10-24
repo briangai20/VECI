@@ -6,7 +6,8 @@ import { after } from "next/server";
 import { avisarReserva, type Evento } from "@/lib/avisos";
 import { usuarioActual } from "@/lib/sesion";
 import { supabaseServidor } from "@/lib/supabase/servidor";
-import type { Enum } from "@/lib/supabase/tipos";
+import { emparejar, MAX_FILAS, type FilaProducto } from "@/lib/importar";
+import type { Enum, TablesInsert, TablesUpdate } from "@/lib/supabase/tipos";
 
 export type Estado = { error?: string; ok?: string };
 
@@ -200,4 +201,90 @@ export async function guardarFoto(productoId: number, url: string) {
   const raiz = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/productos/`;
   if (p.foto_url?.startsWith(raiz)) await supabase.storage.from("productos").remove([p.foto_url.slice(raiz.length)]);
   refresh();
+}
+
+export type ResultadoImportacion = { error?: string; agregados?: number; actualizados?: number };
+
+// Carga masiva desde la planilla (ya interpretada en el navegador con
+// lib/importar.ts). Agrega los productos nuevos y actualiza los que ya
+// estaban (por código o, si no hay código, por nombre). No borra ni oculta
+// los que no vienen en la planilla.
+export async function importarProductos(comercioId: number, filas: FilaProducto[]): Promise<ResultadoImportacion> {
+  const supabase = await comerciante();
+  if (!Array.isArray(filas) || !filas.length) return { error: "La planilla no tiene productos." };
+  if (filas.length > MAX_FILAS) return { error: `Son más de ${MAX_FILAS} productos: dividí la planilla en dos.` };
+
+  // No confiamos en lo que manda el navegador: se limpia de nuevo cada dato.
+  const MODOS = ["exacto", "semaforo", "consultar", "pedido"];
+  const SEMAFOROS = ["hay", "poco", "no"];
+  const corto = (v: unknown, n: number) => (typeof v === "string" && v.trim() ? v.trim().slice(0, n) : null);
+  const limpias = filas
+    .map((f) => ({
+      fila: Number(f.fila) || 0,
+      codigo: corto(f.codigo, 60),
+      nombre: corto(f.nombre, 200) ?? "",
+      marca: corto(f.marca, 80),
+      grupo: corto(f.grupo, 120),
+      descripcion: corto(f.descripcion, 1000),
+      precio: f.precio === undefined ? undefined : typeof f.precio === "number" && f.precio >= 0 && f.precio < 1e9 ? f.precio : null,
+      modo: MODOS.includes(f.modo as string) ? (f.modo as Enum<"modo_stock">) : undefined,
+      stock: typeof f.stock === "number" && f.stock >= 0 && f.stock < 1e6 ? Math.floor(f.stock) : null,
+      semaforo: SEMAFOROS.includes(f.semaforo as string) ? (f.semaforo as Enum<"semaforo">) : null,
+    }))
+    .filter((f) => f.nombre);
+
+  // Solo trae productos si el comercio es suyo (RLS); si no, el alta falla abajo.
+  const { data: existentes, error: errorLeer } = await supabase.from("productos").select("id, codigo, nombre").eq("comercio_id", comercioId);
+  if (errorLeer) return { error: "No pudimos leer tus productos. Probá de nuevo." };
+
+  const stockDe = (f: (typeof limpias)[number]) =>
+    f.modo === undefined
+      ? {}
+      : { modo: f.modo, stock: f.modo === "exacto" ? (f.stock ?? 0) : null, semaforo: f.modo === "semaforo" ? (f.semaforo ?? "hay") : null };
+
+  const nuevos: TablesInsert<"productos">[] = [];
+  const cambios: { id: number; datos: TablesUpdate<"productos"> }[] = [];
+  for (const { fila: f, existente } of emparejar(limpias, existentes ?? [])) {
+    if (existente) {
+      cambios.push({
+        id: existente.id,
+        datos: {
+          nombre: f.nombre,
+          activo: true,
+          ...(f.codigo ? { codigo: f.codigo } : {}),
+          ...(f.marca ? { marca: f.marca } : {}),
+          ...(f.grupo ? { grupo: f.grupo } : {}),
+          ...(f.descripcion ? { descripcion: f.descripcion } : {}),
+          ...(f.precio !== undefined ? { precio: f.precio } : {}),
+          ...stockDe(f),
+        },
+      });
+    } else {
+      nuevos.push({
+        comercio_id: comercioId,
+        codigo: f.codigo,
+        nombre: f.nombre,
+        marca: f.marca,
+        grupo: f.grupo,
+        descripcion: f.descripcion,
+        precio: f.precio ?? null,
+        modo: "consultar",
+        stock: null,
+        semaforo: null,
+        ...stockDe(f),
+      });
+    }
+  }
+
+  if (nuevos.length) {
+    const { error } = await supabase.from("productos").insert(nuevos);
+    if (error) return { error: "No pudimos agregar los productos nuevos. Revisá que no haya códigos repetidos y probá de nuevo." };
+  }
+  let actualizados = 0;
+  for (let i = 0; i < cambios.length; i += 25) {
+    const tanda = await Promise.all(cambios.slice(i, i + 25).map((c) => supabase.from("productos").update(c.datos).eq("id", c.id)));
+    actualizados += tanda.filter((r) => !r.error).length;
+  }
+  refresh();
+  return { agregados: nuevos.length, actualizados };
 }

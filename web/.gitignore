@@ -40,3 +40,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Se copia de node_modules en cada dev/build (scripts/copiar-worker-mapa.mjs)
+/public/maplibre/

@@ -9,6 +9,7 @@ import { agregarCierre, borrarCierre, cambiarReserva, ofrecerAlternativas } from
 
 const fechaCorta = (f: string) => `${Number(f.slice(8))}/${Number(f.slice(5, 7))}`;
 import { FormComercio } from "./form-comercio";
+import { ImportarProductos } from "./importar-productos";
 import { ProductoFila } from "./producto-fila";
 
 export const metadata: Metadata = { title: "Panel del comerciante" };
@@ -251,6 +252,12 @@ async function Panel({ searchParams }: Pick<PageProps<"/comerciante">, "searchPa
         <p className="mt-1 text-sm text-white/80">
           Mantené el stock al día: si no lo tocás en 7 días (3 si usás hay/poco), el producto aparece como &quot;Sin verificar&quot;.
         </p>
+        <details className="mt-4 rounded-2xl border border-white/20 p-4" open={!(productos ?? []).length}>
+          <summary className="cursor-pointer font-semibold">Cargar o actualizar desde Excel</summary>
+          <div className="mt-3">
+            <ImportarProductos comercioId={comercio.id} existentes={(productos ?? []).map((p) => ({ id: p.id, codigo: p.codigo, nombre: p.nombre }))} />
+          </div>
+        </details>
         <div className="mt-4 space-y-3">
           <ProductoFila comercioId={comercio.id} ahora={ahora} />
           {(productos ?? []).map((p) => (
